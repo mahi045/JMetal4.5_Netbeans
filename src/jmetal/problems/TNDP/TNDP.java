@@ -40,6 +40,7 @@ public class TNDP extends Problem
     public Grph g;
     private NumericalProperty EdgeWeight;
     public Instance ins;
+    public int HyperParameterW1;    // acc. stochastic beam search
 
     public TNDP(int _numOfRoutes, Instance _ins) throws Exception
     {
@@ -47,8 +48,9 @@ public class TNDP extends Problem
         numOfRoutes = _numOfRoutes;
         ins = _ins;
         numberOfVariables_ = 1;
-        numberOfObjectives_ = 7;
+        numberOfObjectives_ = 3;
         numberOfConstraints_ = 2;
+        HyperParameterW1 = 5;           // acc. stochastic beam search 
         problemName_ = ins.getName() + "-" +_numOfRoutes;
         demand = new int[ins.getNumOfVertices()][ins.getNumOfVertices()];
         time = new int[ins.getNumOfVertices()][ins.getNumOfVertices()];
@@ -62,8 +64,10 @@ public class TNDP extends Problem
 
     public static class OBJECTIVES
     {
-
-        public static final int IVTT = 0, WT = 1, TP = 2, UP = 3, FS = 4, RL = 5, DO = 6;
+        public static final int Passanger_Objective = 0;
+        public static final int Bus_Operator_Objective = 1;
+        public static final int Local_Authority_Objective = 2;
+        // public static final int IVTT = 0, WT = 1, TP = 2, UP = 3, FS = 4, RL = 5, DO = 6;
     }
 
     @Override
@@ -153,22 +157,29 @@ public class TNDP extends Problem
         {
             rs.getRoute(k).calculateCongestionFactor(edgeFreqSum);
         }
-        solution.setObjective(OBJECTIVES.RL, totalRL);
-        solution.setObjective(OBJECTIVES.DO, calculateObjectiveDO(edgeUsage, rs));        
+        // solution.setObjective(OBJECTIVES.RL, totalRL);
+        // solution.setObjective(OBJECTIVES.DO, calculateObjectiveDO(edgeUsage, rs));        
         
         rs.d[0] = rs.d[0] / totalDemand; //direct
         rs.d[1] = rs.d[1] / totalDemand; // 1-transfer
         rs.d[2] = rs.d[2] / totalDemand; // unsatisfied
-        solution.setObjective(OBJECTIVES.TP, rs.d[1]);
-        solution.setObjective(OBJECTIVES.UP, rs.d[2]);
+        // solution.setObjective(OBJECTIVES.TP, rs.d[1]);
+        solution.setObjective(OBJECTIVES.Local_Authority_Objective, rs.d[2]);
         double totalFS = 0;
         for (int k = 0; k < rs.size(); k++)
         {
             totalFS += rs.getRoute(k).calculateFleetSize();
         }
-        solution.setObjective(OBJECTIVES.FS, totalFS);
-        solution.setObjective(OBJECTIVES.IVTT, calculateObjectiveIVTT(allPath, rs));
-        solution.setObjective(OBJECTIVES.WT, calculateObjectiveWT(allPath, rs));
+        double sumofRation = 0;
+        for (int k = 0; k < rs.size(); k++)
+        {
+            sumofRation += rs.getRoute(k).calculateFleetSizebyRouteLength();
+        }
+        solution.setObjective(OBJECTIVES.Bus_Operator_Objective, sumofRation);
+        solution.setObjective(OBJECTIVES.Passanger_Objective, 
+            calculateObjectiveIVTT(allPath, rs) + calculateObjectiveWT(allPath, rs) 
+            + HyperParameterW1 * rs.d[1]);
+        
     }
 
     private ArrayList<Path> generateAllPath(int s, int d, RouteSet rs)

@@ -94,6 +94,16 @@ public class Route implements Comparable
         return fleetSize;
     }
 
+    public double calculateFleetSizebyRouteLength()
+    {
+        if (revFreq == -1)
+        {
+            throw new Error("Attempt to calculate the ratio before frequency calculaution");
+        }
+        fleetSize = Math.ceil(2 * frequency / 60.0);
+        return fleetSize;
+    }
+
     public double calculateRouteLength_RoundTrip_edgeOverlap(int[][] time, int[][] edgeUsage)
     {
         roundTripTime = 0;

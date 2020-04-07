@@ -36,13 +36,16 @@ public class RouteSetCombinedGuidedMutation extends Mutation
     {
         super(parameters);
         ObjWiseMut = new Operator[prob.getNumberOfObjectives()+1][];
-        ObjWiseMut[TNDP.OBJECTIVES.IVTT] = new Operator[]{TEL};
-        ObjWiseMut[TNDP.OBJECTIVES.TP] = new Operator[]{Add};
-        ObjWiseMut[TNDP.OBJECTIVES.UP] = new Operator[]{Add};
-        ObjWiseMut[TNDP.OBJECTIVES.RL] = new Operator[]{TEL, Del};
-        ObjWiseMut[TNDP.OBJECTIVES.DO] = new Operator[]{TEO, Del};
-        ObjWiseMut[TNDP.OBJECTIVES.WT] = new Operator[]{Add, Del};
-        ObjWiseMut[TNDP.OBJECTIVES.FS] = new Operator[]{Add, Del};
+        // ObjWiseMut[TNDP.OBJECTIVES.IVTT] = new Operator[]{TEL};
+        // ObjWiseMut[TNDP.OBJECTIVES.TP] = new Operator[]{Add};
+        // ObjWiseMut[TNDP.OBJECTIVES.UP] = new Operator[]{Add};
+        // ObjWiseMut[TNDP.OBJECTIVES.RL] = new Operator[]{TEL, Del};
+        // ObjWiseMut[TNDP.OBJECTIVES.DO] = new Operator[]{TEO, Del};
+        // ObjWiseMut[TNDP.OBJECTIVES.WT] = new Operator[]{Add, Del};
+        // ObjWiseMut[TNDP.OBJECTIVES.FS] = new Operator[]{Add, Del};
+        ObjWiseMut[TNDP.OBJECTIVES.Passanger_Objective] = new Operator[]{TEL, Add, Del};
+        ObjWiseMut[TNDP.OBJECTIVES.Bus_Operator_Objective] = new Operator[]{Add, Del};
+        ObjWiseMut[TNDP.OBJECTIVES.Local_Authority_Objective] = new Operator[]{Add};
         ObjWiseMut[ObjWiseMut.length-1] = new Operator[]{Add, Del};
         
     }

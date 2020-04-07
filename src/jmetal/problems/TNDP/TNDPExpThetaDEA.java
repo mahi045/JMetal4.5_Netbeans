@@ -82,7 +82,7 @@ public class TNDPExpThetaDEA extends Experiment
         
         exp.problemList_ = new String[] //Can be extended
         {
-            "M1-15"
+            "Mandl-15"
         };
 
         exp.paretoFrontFile_ = new String[]{"M1-15.pf"}; //must be set as length of problemList_   String[]{"front.pf"}
@@ -101,7 +101,7 @@ public class TNDPExpThetaDEA extends Experiment
 
         // Run the experiments
         int numberOfThreads;
-        //exp.runExperiment(numberOfThreads = 1);
+        exp.runExperiment(numberOfThreads = 1);
         exp.generateQualityIndicators();
         exp.generateLatexTables() ;
     }
