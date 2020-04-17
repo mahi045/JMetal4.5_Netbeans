@@ -173,7 +173,7 @@ public class TNDP extends Problem
         double sumofRation = 0;
         for (int k = 0; k < rs.size(); k++)
         {
-            sumofRation += rs.getRoute(k).calculateFleetSizebyRouteLength();
+            sumofRation += rs.getRoute(k).calculateFleetSizeDividedbyRouteLength(time);
         }
         solution.setObjective(OBJECTIVES.Bus_Operator_Objective, sumofRation);
         solution.setObjective(OBJECTIVES.Passanger_Objective, 
