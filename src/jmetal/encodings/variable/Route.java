@@ -101,10 +101,7 @@ public class Route implements Comparable
             throw new Error("Attempt to calculate the ratio before frequency calculaution");
         }
         double ratio = 0.0;
-        for (int i = 1; i < nodeList.size(); i++)
-        {
-            ratio += ((double) fleetSize / time[nodeList.get(i)][nodeList.get(i - 1)]);
-        }
+        ratio = Math.ceil(2 * frequency / 60.0);
         return ratio;
     }
 
