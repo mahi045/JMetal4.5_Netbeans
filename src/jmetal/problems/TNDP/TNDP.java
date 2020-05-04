@@ -48,7 +48,7 @@ public class TNDP extends Problem
         numOfRoutes = _numOfRoutes;
         ins = _ins;
         numberOfVariables_ = 1;
-        numberOfObjectives_ = 3;
+        numberOfObjectives_ = 4;
         numberOfConstraints_ = 2;
         HyperParameterW1 = 5;           // acc. stochastic beam search 
         problemName_ = ins.getName() + "-" +_numOfRoutes;
@@ -66,7 +66,8 @@ public class TNDP extends Problem
     {
         public static final int Passanger_Objective = 0;
         public static final int Bus_Operator_Objective = 1;
-        public static final int Local_Authority_Objective = 2;
+        public static final int Local_Authority_Objective_1 = 2;
+        public static final int Local_Authority_Objective_2 = 3;
         // public static final int IVTT = 0, WT = 1, TP = 2, UP = 3, FS = 4, RL = 5, DO = 6;
     }
 
@@ -158,13 +159,13 @@ public class TNDP extends Problem
             rs.getRoute(k).calculateCongestionFactor(edgeFreqSum);
         }
         // solution.setObjective(OBJECTIVES.RL, totalRL);
-        // solution.setObjective(OBJECTIVES.DO, calculateObjectiveDO(edgeUsage, rs));        
+        solution.setObjective(OBJECTIVES.Local_Authority_Objective_1, calculateObjectiveDO(edgeUsage, rs));        
         
         rs.d[0] = rs.d[0] / totalDemand; //direct
         rs.d[1] = rs.d[1] / totalDemand; // 1-transfer
         rs.d[2] = rs.d[2] / totalDemand; // unsatisfied
         // solution.setObjective(OBJECTIVES.TP, rs.d[1]);
-        solution.setObjective(OBJECTIVES.Local_Authority_Objective, rs.d[2]);
+        solution.setObjective(OBJECTIVES.Local_Authority_Objective_2, rs.d[2]);
         double totalFS = 0;
         for (int k = 0; k < rs.size(); k++)
         {

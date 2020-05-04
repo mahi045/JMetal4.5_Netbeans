@@ -152,7 +152,8 @@ public class Route implements Comparable
         {
             throw new Error("Attempt to get route length before calculaution");
         }
-        return congestionFactor; 
+        return 1.0;
+        // return congestionFactor; 
     }
 
     public double getLength()
