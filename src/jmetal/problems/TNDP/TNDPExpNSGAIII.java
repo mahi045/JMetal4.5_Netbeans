@@ -21,9 +21,9 @@ import jmetal.util.JMException;
 public class TNDPExpNSGAIII extends Experiment
 {
 
-    private static final double[] crossoverProbabilityList = {0.0, 0.2, 0.4, 0.6, 0.8, 1.0}; //0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 
+    private static final double[] crossoverProbabilityList = {0.6, 0.8, 1.0}; //0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 
     private static final String[] selectionList = new String[]{"RandomSelection"}; //, "RetativeTournamentSelection"
-    private static final String[] mutationList = new String[]{ "RouteSetAddDelRand","RouteSetAddDelTELRand","RouteSetAddDelTEORand", "RouteSetCombinedRandomMutation", "RouteSetCombinedGuidedMutation"}; //"RouteSetAddDelMutation","RouteSetAddDelTELRand","RouteSetAddDelTEORand"
+    private static final String[] mutationList = new String[]{ "RouteSetAddDelRand","RouteSetAddDelTELRand", "RouteSetCombinedGuidedMutation"}; //"RouteSetAddDelMutation","RouteSetAddDelTELRand","RouteSetAddDelTEORand", "RouteSetCombinedRandomMutation"
     private static String[] algoNameList = new String[crossoverProbabilityList.length*selectionList.length*mutationList.length];
     private static HashMap[] parameterList = new HashMap[crossoverProbabilityList.length*selectionList.length*mutationList.length];
     @Override
@@ -61,7 +61,16 @@ public class TNDPExpNSGAIII extends Experiment
     public static void main(String[] args) throws JMException, IOException
     {
         TNDPExpNSGAIII exp = new TNDPExpNSGAIII();
-        exp.experimentName_ = "NSGAIII_20-6-16";
+        exp.experimentName_ = "Mahi_NSGA3";
+        exp.problemList_ = new String[] //Can be extended
+        {
+            "Mandl-4"
+        };
+        if (exp.problemList_[0].startsWith("M0") || exp.problemList_[0].startsWith("M1")) {
+            exp.crossoverProbabilityList[0] = 0.0;
+            exp.crossoverProbabilityList[1] = 0.2;
+            exp.crossoverProbabilityList[2] = 1.0;
+        }
         int index = 0;
         for (int i = 0; i < mutationList.length; i++)
         {
@@ -79,13 +88,8 @@ public class TNDPExpNSGAIII extends Experiment
             }
         }
         exp.algorithmNameList_ = algoNameList; //Can be extended
-        
-        exp.problemList_ = new String[] //Can be extended
-        {
-            "M1-15"
-        };
 
-        exp.paretoFrontFile_ = new String[]{"M1-15.pf"}; //must be set as length of problemList_   String[]{"front.pf"}
+        exp.paretoFrontFile_ = new String[]{"Mandl-6.pf"}; //must be set as length of problemList_   String[]{"front.pf"}
         exp.indicatorList_ = new String[]{"HV"}; //String[]{"HV"}
 
         int numberOfAlgorithms = exp.algorithmNameList_.length;
@@ -95,13 +99,13 @@ public class TNDPExpNSGAIII extends Experiment
 
         exp.algorithmSettings_ = new Settings[numberOfAlgorithms];
 
-        exp.independentRuns_ = 15;
+        exp.independentRuns_ = 2;
 
         exp.initExperiment();
 
         // Run the experiments
         int numberOfThreads;
-        //exp.runExperiment(numberOfThreads = 1);
+        exp.runExperiment(numberOfThreads = 1);
         exp.generateQualityIndicators();
         exp.generateLatexTables() ;
     }

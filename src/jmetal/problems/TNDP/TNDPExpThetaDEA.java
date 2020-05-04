@@ -21,9 +21,9 @@ import jmetal.util.JMException;
 public class TNDPExpThetaDEA extends Experiment
 {
 
-    private static final double[] crossoverProbabilityList = {0.0, 0.2, 0.4, 0.6, 0.8, 1.0}; //0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 
+    private static final double[] crossoverProbabilityList = {0.2, 0.4, 0.6, 0.8, 1.0}; //0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 
     private static final String[] selectionList = new String[]{"RandomSelection"}; //, "RetativeTournamentSelection"
-    private static final String[] mutationList = new String[]{ "RouteSetAddDelRand","RouteSetAddDelTELRand","RouteSetAddDelTEORand", "RouteSetCombinedRandomMutation", "RouteSetCombinedGuidedMutation"}; //"RouteSetAddDelMutation","RouteSetAddDelTELRand","RouteSetAddDelTEORand"
+    private static final String[] mutationList = new String[]{ "RouteSetAddDelRand","RouteSetAddDelTELRand","RouteSetAddDelTEORand", "RouteSetCombinedGuidedMutation"}; //"RouteSetAddDelMutation","RouteSetAddDelTELRand","RouteSetAddDelTEORand","RouteSetCombinedRandomMutation"
     private static String[] algoNameList = new String[crossoverProbabilityList.length*selectionList.length*mutationList.length];
     private static HashMap[] parameterList = new HashMap[crossoverProbabilityList.length*selectionList.length*mutationList.length];
     @Override
@@ -61,7 +61,7 @@ public class TNDPExpThetaDEA extends Experiment
     public static void main(String[] args) throws JMException, IOException
     {
         TNDPExpThetaDEA exp = new TNDPExpThetaDEA();
-        exp.experimentName_ = "ThetaDEA_20-6-16";
+        exp.experimentName_ = "Mahi_thetaDea";
         int index = 0;
         for (int i = 0; i < mutationList.length; i++)
         {
@@ -82,16 +82,16 @@ public class TNDPExpThetaDEA extends Experiment
         
         exp.problemList_ = new String[] //Can be extended
         {
-            "Mandl-15"
+            "Mandl-4"
         };
 
-        exp.paretoFrontFile_ = new String[]{"M1-15.pf"}; //must be set as length of problemList_   String[]{"front.pf"}
+        exp.paretoFrontFile_ = new String[]{"Mandl-4.pf"}; //must be set as length of problemList_   String[]{"front.pf"}
         exp.indicatorList_ = new String[]{"HV"}; //String[]{"HV"}
 
         int numberOfAlgorithms = exp.algorithmNameList_.length;
 
         exp.experimentBaseDirectory_ = "Experiment/" + exp.experimentName_;
-        exp.paretoFrontDirectory_ = "Experiment/RF_20-6-16"; //Experiment/RF_20-6-16
+        exp.paretoFrontDirectory_ = "Experiment/MahiExp_rf"; //Experiment/RF_20-6-16
 
         exp.algorithmSettings_ = new Settings[numberOfAlgorithms];
 

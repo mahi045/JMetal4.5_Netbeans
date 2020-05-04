@@ -23,7 +23,7 @@ public class TNDPExpMOEAD extends Experiment
 
     private static final double[] crossoverProbabilityList = {0.0, 0.2, 0.4, 0.6, 0.8, 1.0}; //0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 
     private static final String[] selectionList = new String[]{"RandomSelection"}; //, "RetativeTournamentSelection"
-    private static final String[] mutationList = new String[]{"RouteSetAddDelRand","RouteSetAddDelTELRand","RouteSetAddDelTEORand", "RouteSetCombinedRandomMutation", "RouteSetCombinedGuidedMutation"}; //,,, "RouteSetCombinedRandomMutation", "RouteSetCombinedGuidedMutation"}; //"RouteSetAddDelMutation","RouteSetAddDelTELRand","RouteSetAddDelTEORand"
+    private static final String[] mutationList = new String[]{"RouteSetAddDelRand"}; //,,, "RouteSetCombinedRandomMutation", "RouteSetCombinedGuidedMutation"}; //"RouteSetAddDelMutation","RouteSetAddDelTELRand","RouteSetAddDelTEORand"
     private static String[] algoNameList = new String[crossoverProbabilityList.length*selectionList.length*mutationList.length];
     private static HashMap[] parameterList = new HashMap[crossoverProbabilityList.length*selectionList.length*mutationList.length];
     @Override
@@ -61,7 +61,7 @@ public class TNDPExpMOEAD extends Experiment
     public static void main(String[] args) throws JMException, IOException
     {
         TNDPExpMOEAD exp = new TNDPExpMOEAD();
-        exp.experimentName_ = "MOEAD_20-6-16";
+        exp.experimentName_ = "MOEAD_Mahi";
         int index = 0;
         for (int i = 0; i < mutationList.length; i++)
         {
@@ -82,7 +82,7 @@ public class TNDPExpMOEAD extends Experiment
         
         exp.problemList_ = new String[] //Can be extended
         {
-            "M1-15"
+            "Mandl-6"
         };
 
         exp.paretoFrontFile_ = new String[]{"M1-15.pf"}; //must be set as length of problemList_    String[]{"front.pf"}
@@ -101,8 +101,8 @@ public class TNDPExpMOEAD extends Experiment
 
         // Run the experiments
         int numberOfThreads;
-        //exp.runExperiment(numberOfThreads = Runtime.getRuntime().availableProcessors());
-        exp.generateQualityIndicators();
-        exp.generateLatexTables() ;
+        exp.runExperiment(numberOfThreads = Runtime.getRuntime().availableProcessors());
+        // exp.generateQualityIndicators();
+        // exp.generateLatexTables() ;
     }
 }

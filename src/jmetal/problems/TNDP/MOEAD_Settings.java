@@ -76,7 +76,7 @@ public class MOEAD_Settings extends Settings
         div2_ = 2;
         tSize_ = 40;
         
-        T_ = 20;
+        T_ = 15;
         delta_ = 0.9;
         nr_ = 2;
     } // MOEAD_Settings
