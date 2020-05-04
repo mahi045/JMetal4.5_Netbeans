@@ -41,6 +41,7 @@ public class TNDP extends Problem
     private NumericalProperty EdgeWeight;
     public Instance ins;
     public int HyperParameterW1;    // acc. stochastic beam search
+    public double HyperParameterW2;    // acc. stochastic beam search
 
     public TNDP(int _numOfRoutes, Instance _ins) throws Exception
     {
@@ -51,6 +52,7 @@ public class TNDP extends Problem
         numberOfObjectives_ = 3;
         numberOfConstraints_ = 2;
         HyperParameterW1 = 5;           // acc. stochastic beam search 
+        HyperParameterW2 = 50;          // acc. stochastic beam search
         problemName_ = ins.getName() + "-" +_numOfRoutes;
         demand = new int[ins.getNumOfVertices()][ins.getNumOfVertices()];
         time = new int[ins.getNumOfVertices()][ins.getNumOfVertices()];
@@ -84,6 +86,8 @@ public class TNDP extends Problem
         double[][] edgeFreqSum = new double[Vertices][Vertices];
 
         double totalRL = 0;
+        double weightedTravelTime = 0.0;
+        double travelTime = 0.0;
         for (int k = 0; k < rs.size(); k++)
         {
             routeDemand[k] = new double[rs.getRoute(k).size()];
@@ -105,7 +109,8 @@ public class TNDP extends Problem
                     rs.d[2] += demand[i][j];
                 } else
                 {
-                    screenPath(paths, rs);
+                    travelTime = screenPath(paths, rs);
+                    weightedTravelTime += (travelTime * demand[i][j]);
                     classifyPaths(paths, pathClass, pathGroup);
                     rs.d[paths.get(0).getNumOfSegment() - 1] += demand[i][j]; //d0 => 1 segement, d1=> 2 segment
                 }
@@ -164,7 +169,7 @@ public class TNDP extends Problem
         rs.d[1] = rs.d[1] / totalDemand; // 1-transfer
         rs.d[2] = rs.d[2] / totalDemand; // unsatisfied
         // solution.setObjective(OBJECTIVES.TP, rs.d[1]);
-        solution.setObjective(OBJECTIVES.Local_Authority_Objective, rs.d[2]);
+        solution.setObjective(OBJECTIVES.Local_Authority_Objective, calculateObjectiveDO(edgeUsage, rs));
         double totalFS = 0;
         for (int k = 0; k < rs.size(); k++)
         {
@@ -175,10 +180,11 @@ public class TNDP extends Problem
         {
             sumofRation += rs.getRoute(k).calculateFleetSizeDividedbyRouteLength(time);
         }
+        HyperParameterW2 += (weightedTravelTime / totalDemand);
         solution.setObjective(OBJECTIVES.Bus_Operator_Objective, sumofRation);
         solution.setObjective(OBJECTIVES.Passanger_Objective, 
             calculateObjectiveIVTT(allPath, rs) + calculateObjectiveWT(allPath, rs) 
-            + HyperParameterW1 * rs.d[1]);
+            + HyperParameterW1 * rs.d[1] + HyperParameterW2 * rs.d[2]);
         
     }
 
@@ -270,7 +276,7 @@ public class TNDP extends Problem
         }
     }
 
-    private void screenPath(ArrayList<Path> paths, RouteSet rs)
+    private double screenPath(ArrayList<Path> paths, RouteSet rs)
     {
         double minTime = Double.MAX_VALUE;
         for (Path p : paths)
@@ -309,6 +315,7 @@ public class TNDP extends Problem
                 paths.remove(i);
             }
         }
+        return minTime;
     }
     
     private void calculateCongestedTravelTime(ArrayList<Path> paths, RouteSet rs)

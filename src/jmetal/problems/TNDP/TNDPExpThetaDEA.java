@@ -23,7 +23,7 @@ public class TNDPExpThetaDEA extends Experiment
 
     private static final double[] crossoverProbabilityList = {0.2, 0.4, 0.6, 0.8, 1.0}; //0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 
     private static final String[] selectionList = new String[]{"RandomSelection"}; //, "RetativeTournamentSelection"
-    private static final String[] mutationList = new String[]{ "RouteSetAddDelRand","RouteSetAddDelTELRand","RouteSetAddDelTEORand", "RouteSetCombinedGuidedMutation"}; //"RouteSetAddDelMutation","RouteSetAddDelTELRand","RouteSetAddDelTEORand","RouteSetCombinedRandomMutation"
+    private static final String[] mutationList = new String[]{ "RouteSetAddDelRand"}; //"RouteSetAddDelMutation","RouteSetAddDelTELRand","RouteSetAddDelTEORand","RouteSetCombinedRandomMutation"
     private static String[] algoNameList = new String[crossoverProbabilityList.length*selectionList.length*mutationList.length];
     private static HashMap[] parameterList = new HashMap[crossoverProbabilityList.length*selectionList.length*mutationList.length];
     @Override
@@ -82,7 +82,7 @@ public class TNDPExpThetaDEA extends Experiment
         
         exp.problemList_ = new String[] //Can be extended
         {
-            "Mandl-4"
+            "M0-12"
         };
 
         exp.paretoFrontFile_ = new String[]{"Mandl-4.pf"}; //must be set as length of problemList_   String[]{"front.pf"}
@@ -102,7 +102,7 @@ public class TNDPExpThetaDEA extends Experiment
         // Run the experiments
         int numberOfThreads;
         exp.runExperiment(numberOfThreads = 1);
-        exp.generateQualityIndicators();
-        exp.generateLatexTables() ;
+        //exp.generateQualityIndicators();
+        //exp.generateLatexTables() ;
     }
 }
