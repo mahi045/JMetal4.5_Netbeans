@@ -21,7 +21,7 @@ import jmetal.util.JMException;
 public class TNDPExpThetaDEA extends Experiment
 {
 
-    private static final double[] crossoverProbabilityList = {0.2, 0.4, 0.6, 0.8, 1.0}; //0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 
+    private static final double[] crossoverProbabilityList = {0.8}; //0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 
     private static final String[] selectionList = new String[]{"RandomSelection"}; //, "RetativeTournamentSelection"
     private static final String[] mutationList = new String[]{ "RouteSetAddDelRand"}; //"RouteSetAddDelMutation","RouteSetAddDelTELRand","RouteSetAddDelTEORand","RouteSetCombinedRandomMutation"
     private static String[] algoNameList = new String[crossoverProbabilityList.length*selectionList.length*mutationList.length];
@@ -61,7 +61,7 @@ public class TNDPExpThetaDEA extends Experiment
     public static void main(String[] args) throws JMException, IOException
     {
         TNDPExpThetaDEA exp = new TNDPExpThetaDEA();
-        exp.experimentName_ = "Mahi_thetaDea";
+        exp.experimentName_ = "Mahi_thetaDea-3";
         int index = 0;
         for (int i = 0; i < mutationList.length; i++)
         {
@@ -95,7 +95,7 @@ public class TNDPExpThetaDEA extends Experiment
 
         exp.algorithmSettings_ = new Settings[numberOfAlgorithms];
 
-        exp.independentRuns_ = 15;
+        exp.independentRuns_ = 20;
 
         exp.initExperiment();
 

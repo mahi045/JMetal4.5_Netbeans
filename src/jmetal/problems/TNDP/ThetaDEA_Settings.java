@@ -70,8 +70,8 @@ public class ThetaDEA_Settings extends Settings
         mutationName_ = "RouteSetAddDelRand";
         SelectionName_ = "RandomSelection";
         addProbability_ = 0.5;
-        div1_ = 3;
-        div2_ = 2;
+        div1_ = 14;
+        div2_ = 0;
         tSize_ = 40;
     } // ThetaDEA_Settings
 
