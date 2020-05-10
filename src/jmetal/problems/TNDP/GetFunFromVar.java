@@ -60,7 +60,7 @@ public class GetFunFromVar
         br.close();
         fr.close();
         
-        pop.printFeasibleFUN(ins.dir + "FUN_for_"+varFile);
+        pop.printFeasibleFUN(ins.dir + "FUN_for_"+varFile, true);
         
         
         

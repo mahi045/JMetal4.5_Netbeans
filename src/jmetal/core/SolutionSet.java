@@ -304,6 +304,35 @@ public class SolutionSet implements Serializable {
     }
   }
 
+
+  /**
+   * Write the ideal function values of feasible solutions into a file
+   * @param path File name
+   */
+  public void printFeasibleFUN(String path, boolean seven_objective) {
+    try {
+      FileOutputStream fos   = new FileOutputStream(path)     ;
+      OutputStreamWriter osw = new OutputStreamWriter(fos)    ;
+      BufferedWriter bw      = new BufferedWriter(osw)        ;
+
+      for (Solution aSolutionsList_ : solutionsList_) {
+        if (aSolutionsList_.getOverallConstraintViolation() == 0.0) {
+          if (seven_objective) {
+            bw.write(aSolutionsList_.toStringForSevenObjective());
+          }
+          else{
+            bw.write(aSolutionsList_.toString());
+          }
+          bw.newLine();
+        }
+      }
+      bw.close();
+    }catch (IOException e) {
+      Configuration.logger_.severe("Error acceding to the file");
+      e.printStackTrace();
+    }
+  }
+
   /**
    * Write the encodings.variable values of feasible solutions into a file
    * @param path File name

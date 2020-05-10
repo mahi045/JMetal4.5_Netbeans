@@ -45,7 +45,7 @@ public class RouteSetCombinedGuidedMutation extends Mutation
         // ObjWiseMut[TNDP.OBJECTIVES.FS] = new Operator[]{Add, Del};
         ObjWiseMut[TNDP.OBJECTIVES.Passanger_Objective] = new Operator[]{TEL, Add, Del};
         ObjWiseMut[TNDP.OBJECTIVES.Bus_Operator_Objective] = new Operator[]{Add, Del};
-        ObjWiseMut[TNDP.OBJECTIVES.Local_Authority_Objective] = new Operator[]{Add};
+        // ObjWiseMut[TNDP.OBJECTIVES.Local_Authority_Objective] = new Operator[]{Add};
         ObjWiseMut[ObjWiseMut.length-1] = new Operator[]{Add, Del};
         
     }

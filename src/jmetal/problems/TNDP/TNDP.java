@@ -71,6 +71,11 @@ public class TNDP extends Problem
         // public static final int IVTT = 0, WT = 1, TP = 2, UP = 3, FS = 4, RL = 5, DO = 6;
     }
 
+    public static class IDEAL_OBJECTIVES
+    {
+        public static final int IVTT = 0, WT = 1, TP = 2, UP = 3, FS = 4, RL = 5, DO = 6;
+    }
+
     @Override
     public void evaluate(Solution solution) throws JMException
     {
@@ -158,28 +163,36 @@ public class TNDP extends Problem
         {
             rs.getRoute(k).calculateCongestionFactor(edgeFreqSum);
         }
-        // solution.setObjective(OBJECTIVES.RL, totalRL);
-        solution.setObjective(OBJECTIVES.Local_Authority_Objective_1, calculateObjectiveDO(edgeUsage, rs));        
-        
+        solution.setIdealObjective(IDEAL_OBJECTIVES.RL, totalRL);
+        double calc_DO = calculateObjectiveDO(edgeUsage, rs);
+        solution.setObjective(OBJECTIVES.Local_Authority_Objective_1, calc_DO);        
+        solution.setIdealObjective(IDEAL_OBJECTIVES.DO, calc_DO);
         rs.d[0] = rs.d[0] / totalDemand; //direct
         rs.d[1] = rs.d[1] / totalDemand; // 1-transfer
         rs.d[2] = rs.d[2] / totalDemand; // unsatisfied
         // solution.setObjective(OBJECTIVES.TP, rs.d[1]);
         solution.setObjective(OBJECTIVES.Local_Authority_Objective_2, rs.d[2]);
+        solution.setIdealObjective(IDEAL_OBJECTIVES.UP,  rs.d[2]);
         double totalFS = 0;
         for (int k = 0; k < rs.size(); k++)
         {
             totalFS += rs.getRoute(k).calculateFleetSize();
         }
+        solution.setIdealObjective(IDEAL_OBJECTIVES.FS, totalFS);
+        
         double sumofRation = 0;
         for (int k = 0; k < rs.size(); k++)
         {
             sumofRation += rs.getRoute(k).calculateFleetSizeDividedbyRouteLength(time);
         }
         solution.setObjective(OBJECTIVES.Bus_Operator_Objective, sumofRation);
+        solution.setIdealObjective(IDEAL_OBJECTIVES.TP, rs.d[1]);
+        double calc_IVTT = calculateObjectiveIVTT(allPath, rs);
+        double calc_WT = calculateObjectiveWT(allPath, rs); 
         solution.setObjective(OBJECTIVES.Passanger_Objective, 
-            calculateObjectiveIVTT(allPath, rs) + calculateObjectiveWT(allPath, rs) 
-            + HyperParameterW1 * rs.d[1]);
+            calc_IVTT + calc_WT + HyperParameterW1 * rs.d[1]);
+        solution.setIdealObjective(IDEAL_OBJECTIVES.IVTT, calc_IVTT);
+        solution.setIdealObjective(IDEAL_OBJECTIVES.WT, calc_WT);
         
     }
 

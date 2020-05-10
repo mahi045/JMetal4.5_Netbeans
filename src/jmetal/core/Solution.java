@@ -53,6 +53,11 @@ public class Solution implements Serializable
     private final double[] objective_;
 
     /**
+     * Stores the ideal objectives values of the solution.
+     */
+    private final double[] idealObjective_;
+
+    /**
      * Stores the number of objective values of the solution
      */
     private int numberOfObjectives_;
@@ -111,6 +116,7 @@ public class Solution implements Serializable
     private double vDistance_;
 
     private double[] normalizedObjective_;
+    private double[] normalizedIdealObjective_;
 
     /**
      * Constructor.
@@ -124,6 +130,7 @@ public class Solution implements Serializable
         type_ = null;
         variable_ = null;
         objective_ = null;
+        idealObjective_ = null;
 
     } // Solution
 
@@ -141,6 +148,9 @@ public class Solution implements Serializable
         objective_ = new double[numberOfObjectives];
 
         normalizedObjective_ = new double[numberOfObjectives_];
+        idealObjective_ = new double[7];
+
+        normalizedIdealObjective_ = new double[7];
 
     }
 
@@ -158,6 +168,9 @@ public class Solution implements Serializable
         objective_ = new double[numberOfObjectives_];
 
         normalizedObjective_ = new double[numberOfObjectives_];
+        idealObjective_ = new double[7];
+
+        normalizedIdealObjective_ = new double[7];
 
         // Setting initial values
         fitness_ = 0.0;
@@ -189,6 +202,9 @@ public class Solution implements Serializable
         objective_ = new double[numberOfObjectives_];
 
         normalizedObjective_ = new double[numberOfObjectives_];
+        idealObjective_ = new double[7];
+
+        normalizedIdealObjective_ = new double[7];
 
         // Setting initial values
         fitness_ = 0.0;
@@ -215,6 +231,9 @@ public class Solution implements Serializable
         objective_ = new double[numberOfObjectives_];
 
         normalizedObjective_ = new double[numberOfObjectives_];
+        idealObjective_ = new double[7];
+
+        normalizedIdealObjective_ = new double[7];
 
         for (int i = 0; i < objective_.length; i++)
         {
@@ -344,6 +363,17 @@ public class Solution implements Serializable
     } // setObjective
 
     /**
+     * Sets the value of the i-th ideal objective.
+     *
+     * @param i The number identifying the objective.
+     * @param value The value to be stored.
+     */
+    public void setIdealObjective(int i, double value)
+    {
+        idealObjective_[i] = value;
+    } // setObjective
+
+    /**
      * Returns the value of the i-th objective.
      *
      * @param i The value of the objective.
@@ -351,6 +381,16 @@ public class Solution implements Serializable
     public double getObjective(int i)
     {
         return objective_[i];
+    } // getObjective
+
+    /**
+     * Returns the value of the i-th ideal objective.
+     *
+     * @param i The value of the objective.
+     */
+    public double getIdealObjective(int i)
+    {
+        return idealObjective_[i];
     } // getObjective
 
     /**
@@ -401,6 +441,22 @@ public class Solution implements Serializable
         for (int i = 0; i < this.numberOfObjectives_; i++)
         {
             aux = aux + this.getObjective(i) + " ";
+        }
+
+        return aux;
+    } // toString
+
+    /**
+     * Returns a string representing the solution.
+     *
+     * @return The string.
+     */
+    public String toStringForSevenObjective()
+    {
+        String aux = "";
+        for (int i = 0; i < 7; i++)
+        {
+            aux = aux + this.getIdealObjective(i) + " ";
         }
 
         return aux;
