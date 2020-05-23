@@ -354,37 +354,44 @@ public class TNDP extends Problem
 
     private void splitDemand(ArrayList<Path> paths, HashMap<Integer, ArrayList<Path>> pathClass, HashMap<String, ArrayList<Path>> pathGroup, RouteSet rs)
     {
-        boolean transfer = paths.get(0).needTransfer();;
-        double sumFrequency = 0;
+        boolean transfer = paths.get(0).needTransfer();
+        double sumTotalTravelTimeINV = 0.0;
         for (int routeId : pathClass.keySet())
         {
-            sumFrequency += rs.getRoute(routeId).frequency;
-        }
-        for (int routeId : pathClass.keySet())
-        {
-            double routeFreq = rs.getRoute(routeId).frequency;
-            int totalPath = pathClass.get(routeId).size();
             for (Path p : pathClass.get(routeId))
             {
-                p.demandPerc = 1.0 * routeFreq / (sumFrequency * totalPath);
+                assert p.totalInVehicleTime > 0.0;
+                sumTotalTravelTimeINV += (1.0 * pathClass.get(routeId).size() / p.totalInVehicleTime);
+            }
+        }
+        assert sumTotalTravelTimeINV > 0.0;
+        
+        for (int routeId : pathClass.keySet())
+        {
+            double totalTravelTimeINV;
+            //int totalPath = pathClass.get(routeId).size();
+            for (Path p : pathClass.get(routeId))
+            {
+                totalTravelTimeINV = 1.0 / p.totalInVehicleTime;
+                p.demandPerc = totalTravelTimeINV / (sumTotalTravelTimeINV);
             }
         }
         if (transfer)
         {
             for (Map.Entry<String, ArrayList<Path>> entry : pathGroup.entrySet())
             {
+                sumTotalTravelTimeINV = 0.0;
                 ArrayList<Path> pList = entry.getValue();
-                double sumFreq = 0;
                 double sumDemand = 0;
                 for (Path p : pList)
                 {
                     sumDemand += p.demandPerc;
-                    sumFreq += rs.getRoute(p.getRouteOfSeg(1)).frequency;
+                    sumTotalTravelTimeINV += (1.0 / p.totalInVehicleTime);
                 }
                 for (Path p : pList)
                 {
-                    double routeFreq = rs.getRoute(p.getRouteOfSeg(1)).frequency;
-                    p.demandPerc = 1.0 * sumDemand * routeFreq / sumFreq;
+                    double TotalTravelTimeINV = (1.0 / p.totalInVehicleTime);
+                    p.demandPerc = 1.0 * sumDemand * TotalTravelTimeINV / sumTotalTravelTimeINV;
                 }
             }
         }
@@ -431,7 +438,7 @@ public class TNDP extends Problem
                 }
 
             }
-            converged = converged && rs.getRoute(i).reviseFrequency(MLSDemand, MLS);
+            rs.getRoute(i).reviseFrequency(MLSDemand, MLS);
 
         }
         return converged;
