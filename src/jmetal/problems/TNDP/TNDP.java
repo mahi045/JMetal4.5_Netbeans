@@ -108,12 +108,12 @@ public class TNDP extends Problem
                     paths = null;
                     pathClass = null;
                     pathGroup = null;
-                    rs.d[2] += demand[i][j];
+                    rs.d[3] += demand[i][j];
                 } else
                 {
                     screenPath(paths, rs);
                     classifyPaths(paths, pathClass, pathGroup);
-                    rs.d[paths.get(0).getNumOfSegment() - 1] += demand[i][j]; //d0 => 1 segement, d1=> 2 segment
+                    rs.d[paths.get(0).getNumOfSegment() - 1] += demand[i][j]; //d0 => 1 segement, d1=> 2 segment, d2=> 3 segment
                 }
                 allPath[i][j] = paths;
                 allPathClass[i][j] = pathClass;
@@ -169,10 +169,11 @@ public class TNDP extends Problem
         solution.setIdealObjective(IDEAL_OBJECTIVES.DO, calc_DO);
         rs.d[0] = rs.d[0] / totalDemand; //direct
         rs.d[1] = rs.d[1] / totalDemand; // 1-transfer
-        rs.d[2] = rs.d[2] / totalDemand; // unsatisfied
+        rs.d[2] = rs.d[2] / totalDemand; // 2-transfer
+        rs.d[3] = rs.d[3] / totalDemand; // unsatisfied
         // solution.setObjective(OBJECTIVES.TP, rs.d[1]);
-        solution.setObjective(OBJECTIVES.Local_Authority_Objective_2, rs.d[2]);
-        solution.setIdealObjective(IDEAL_OBJECTIVES.UP,  rs.d[2]);
+        solution.setObjective(OBJECTIVES.Local_Authority_Objective_2, rs.d[3]);
+        solution.setIdealObjective(IDEAL_OBJECTIVES.UP,  rs.d[3]);
         double totalFS = 0;
         for (int k = 0; k < rs.size(); k++)
         {
@@ -186,11 +187,11 @@ public class TNDP extends Problem
             sumofRation += rs.getRoute(k).calculateFleetSizeDividedbyRouteLength(time);
         }
         solution.setObjective(OBJECTIVES.Bus_Operator_Objective, sumofRation);
-        solution.setIdealObjective(IDEAL_OBJECTIVES.TP, rs.d[1]);
+        solution.setIdealObjective(IDEAL_OBJECTIVES.TP, rs.d[1] + rs.d[2]);
         double calc_IVTT = calculateObjectiveIVTT(allPath, rs);
         double calc_WT = calculateObjectiveWT(allPath, rs); 
         solution.setObjective(OBJECTIVES.Passanger_Objective, 
-            calc_IVTT + calc_WT + HyperParameterW1 * rs.d[1]);
+            calc_IVTT + calc_WT + HyperParameterW1 * (rs.d[1] + 2 * rs.d[2]));
         solution.setIdealObjective(IDEAL_OBJECTIVES.IVTT, calc_IVTT);
         solution.setIdealObjective(IDEAL_OBJECTIVES.WT, calc_WT);
         
@@ -242,6 +243,33 @@ public class TNDP extends Problem
                             paths.add(p);
                             p.setName("Path from " + s + " to " + d + ": " + "(R" + ro + "," + s + "," + i + ")" + "(R" + rd + "," + i + "," + d + ")");
                             break;
+                        }
+                    }
+                }
+            }
+            if (paths.isEmpty()) {
+                Set<Integer> commonNode1, commonNode2;
+                for (int i = 0; i < rs.size(); i++) {
+                    if (!routesHavingS.contains(i) && !routesHavingD.contains(i)) {
+                        for (int ro : routesHavingS) {
+                            for (int rd : routesHavingD) {
+                                commonNode1 = intersect(routeNodeSet.get(ro), routeNodeSet.get(i));
+                                commonNode2 = intersect(routeNodeSet.get(i), routeNodeSet.get(rd));
+                                if (!commonNode1.isEmpty() && !commonNode2.isEmpty()) {
+                                    Path p = new Path(s, d);
+                                    int intermediateNode1 = commonNode1.iterator().next();
+                                    int intermediateNode2 = commonNode2.iterator().next();
+                                    p.addSegment(ro, s, intermediateNode1);
+                                    p.addSegment(i, intermediateNode1, intermediateNode2);
+                                    p.addSegment(rd, intermediateNode2, d);
+                                    paths.add(p);
+                                    p.setName("Path from " + s + " to " + intermediateNode1 + ": " 
+                                    + "(R" + i + "," + intermediateNode1 + "," + intermediateNode2 + ")" 
+                                    + "(R" + rd + "," + intermediateNode2 + "," + d + ")");
+                                    break;
+
+                                }
+                            }
                         }
                     }
                 }

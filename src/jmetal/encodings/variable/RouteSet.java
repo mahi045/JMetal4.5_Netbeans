@@ -30,8 +30,8 @@ public class RouteSet extends Variable
     public ArrayList<Route> routeSet = new ArrayList<>();
     public double d[] =
     {
-        0, 0, 0
-    };// d0,d1,dun => direct , 1-transfer , unsatisfied 
+        0, 0, 0, 0
+    };// d0,d1,d2,dun => direct , 1-transfer , 2-transfer , unsatisfied 
     static double epsilon = 0.1;
     private int overallConstraintViolation = 0;
    // double totalIVTT;

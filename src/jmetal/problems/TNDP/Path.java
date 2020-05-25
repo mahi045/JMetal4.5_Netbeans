@@ -60,7 +60,13 @@ public class Path
 
     String getRouteAndEndOfSeg(int i)
     {
-        return "" + segList.get(i).routeId + segList.get(i).endNode;
+        // return "" + segList.get(i).routeId + segList.get(i).endNode;
+        String key = "";
+        key = segList.get(i).routeId + "->" + segList.get(i).endNode;
+        if (segList.size() == 3) {
+            key = key + ("->" + segList.get(i+1).routeId + "->" + segList.get(i+1).endNode);        
+        }
+        return key;
     }
 
     void setName(String s)
