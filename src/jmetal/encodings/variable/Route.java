@@ -7,7 +7,7 @@ package jmetal.encodings.variable;
 
 import java.util.ArrayList;
 import java.util.Collections;
-
+import jmetal.encodings.variable.BusStop;
 /**
  *
  * @author MAN
@@ -15,7 +15,7 @@ import java.util.Collections;
 public class Route implements Comparable
 {
 
-    public ArrayList<Integer> nodeList = new ArrayList<>();
+    public ArrayList<BusStop> nodeList = new ArrayList<BusStop>();
     public ArrayList<Integer> shelterList = new ArrayList<>();
     //int id;
     public double frequency = 1;
@@ -48,9 +48,42 @@ public class Route implements Comparable
         //     nodeList.add(n);
         // } else
         // {
-            nodeList.add(0, n);
+            nodeList.add(0, new BusStop(n));
         // }
 
+    }
+
+    public ArrayList<Integer> getAllBusStops() {
+        ArrayList<Integer> stops = new ArrayList<Integer>();
+        boolean start = true;
+        for (BusStop bs: this.nodeList) {
+            if (bs.isInterval || start) {
+                stops.add(bs.stopId);
+            }
+            start = false;
+        }
+        return stops;
+    }
+
+    void createRouteFromList(ArrayList<Integer> lst) {
+        for (Integer e: lst) {
+            this.nodeList.add(new BusStop(e));
+        }
+    }
+    
+    void makeAllStopInterval() {
+        for (BusStop bs: this.nodeList) {
+            bs.makeStopage();
+        }
+    }
+    
+    void makeAStopInterval(int index) {
+        if (index >= this.nodeList.size() - 1) {
+            System.out.println(index);
+            System.out.println(this.nodeList.size());
+            throw new Error("There is some errors");
+        }
+        this.nodeList.get(index).makeStopage();
     }
 
     void addShelter(int n) {
@@ -77,7 +110,7 @@ public class Route implements Comparable
         String[] nodes = route.split(" ");
         for (int i = 0; i < nodes.length - 1; i++)
         {
-            r.nodeList.add(Integer.parseInt(nodes[i]));
+            r.nodeList.add(new BusStop(Integer.parseInt(nodes[i])));
         }
         return r;
     }
@@ -88,7 +121,7 @@ public class Route implements Comparable
         String[] nodes = route.split(",");
         for (int i = 0; i < nodes.length; i++)
         {
-            r.nodeList.add(Integer.parseInt(nodes[i].trim()));
+            r.nodeList.add(new BusStop(Integer.parseInt(nodes[i].trim())));
         }
         return r;
     }
@@ -108,8 +141,8 @@ public class Route implements Comparable
         roundTripTime = 0;
         for (int i = 1; i < nodeList.size(); i++)
         {
-            roundTripTime += time[nodeList.get(i)][nodeList.get(i - 1)];
-            edgeUsage[nodeList.get(i)][nodeList.get(i - 1)] = ++edgeUsage[nodeList.get(i - 1)][nodeList.get(i)];
+            roundTripTime += time[nodeList.get(i).stopId][nodeList.get(i - 1).stopId];
+            edgeUsage[nodeList.get(i).stopId][nodeList.get(i - 1).stopId] = ++edgeUsage[nodeList.get(i - 1).stopId][nodeList.get(i).stopId];
         }
         length = roundTripTime;
         roundTripTime += (nodeList.size() - 1) * stationStandTime;
@@ -122,9 +155,9 @@ public class Route implements Comparable
         roundTripTime = 0;
         for (int i = 1; i < nodeList.size(); i++)
         {
-            roundTripTime += time[nodeList.get(i)][nodeList.get(i - 1)];
-            edgeUsage[nodeList.get(i)][nodeList.get(i - 1)] = ++edgeUsage[nodeList.get(i - 1)][nodeList.get(i)];
-            edgeFreqSum[nodeList.get(i)][nodeList.get(i - 1)] = (edgeFreqSum[nodeList.get(i - 1)][nodeList.get(i)] += this.frequency);
+            roundTripTime += time[nodeList.get(i).stopId][nodeList.get(i - 1).stopId];
+            edgeUsage[nodeList.get(i).stopId][nodeList.get(i - 1).stopId] = ++edgeUsage[nodeList.get(i - 1).stopId][nodeList.get(i).stopId];
+            edgeFreqSum[nodeList.get(i).stopId][nodeList.get(i - 1).stopId] = (edgeFreqSum[nodeList.get(i - 1).stopId][nodeList.get(i).stopId] += this.frequency);
         }
 
         length = roundTripTime;
@@ -138,7 +171,7 @@ public class Route implements Comparable
         double weightedAvg = 0;
         for (int i = 1; i < nodeList.size(); i++)
         {
-           weightedAvg +=  edgeFreqSum[nodeList.get(i)][nodeList.get(i - 1)];
+           weightedAvg +=  edgeFreqSum[nodeList.get(i).stopId][nodeList.get(i - 1).stopId];
         }
         weightedAvg = weightedAvg / length;
         congestionFactor = weightedAvg / frequency;
@@ -187,11 +220,11 @@ public class Route implements Comparable
     @Override
     public String toString()
     {
-        int s = nodeList.get(0);
-        int e = nodeList.get(nodeList.size() - 1);
+        int s = nodeList.get(0).stopId;
+        int e = nodeList.get(nodeList.size() - 1).stopId;
         if (e < s)
         {
-            ArrayList<Integer> copy = new ArrayList<>(nodeList);
+            ArrayList<BusStop> copy = new ArrayList<>(nodeList);
             Collections.reverse(copy);
             return copy.toString();
         } else
@@ -204,7 +237,7 @@ public class Route implements Comparable
     {
         Route r = new Route();
         //r.nodeList =  (ArrayList<Integer>) nodeList.clone();
-        for (Integer i : nodeList)
+        for (BusStop i : nodeList)
         {
             r.nodeList.add(i);
         }

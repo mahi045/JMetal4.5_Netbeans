@@ -42,6 +42,16 @@ public abstract class Instance
         return dir + "M1ZoneDemand.txt";
     }
 
+    public String getDepotFile()
+    {
+        return dir + "M1Depots.txt";
+    }
+    
+    public String getRoutesFile()
+    {
+        return dir + "M1InitialRoutes.txt";
+    }
+
     public String getTimeFile()
     {
         return dir + timeFile;

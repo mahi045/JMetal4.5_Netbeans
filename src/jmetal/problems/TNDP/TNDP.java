@@ -12,6 +12,7 @@ import grph.Grph;
 import grph.in_memory.InMemoryGrph;
 import grph.io.EdgeListReader;
 import grph.properties.NumericalProperty;
+import grph.path.ArrayListPath;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -27,11 +28,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.Collections;
 import com.google.common.collect.Sets;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 import jmetal.core.Variable;
 import jmetal.encodings.solutionType.RouteSetSolutionType;
 import jmetal.encodings.variable.Route;
 import jmetal.encodings.variable.RouteSet;
+import jmetal.encodings.variable.BusStop;
 import jmetal.util.PseudoRandom;
 
 /**
@@ -53,7 +58,15 @@ public class TNDP extends Problem
     public Grph g;
     private NumericalProperty EdgeWeight;
     public Instance ins;
-    protected int[] shelters = new int[] {14, 47, 48};
+    public HashMap<Integer, int []> shelters = new HashMap<Integer, int []>() {{
+        put(14, new int [] {2, 61});
+        put(47, new int [] {6, 40});    
+    }};
+    public ArrayList<Integer> shelter_list = new ArrayList<Integer>(shelters.keySet());
+    public int [] immediate_node = new int [] {2, 61, 6, 40};
+    
+    public ArrayList<Integer> depots = new ArrayList<Integer>();
+    public HashMap<String, List<Passage>> all_probable_route = new HashMap<String, List<Passage>>();
     private int fleetSize = 100;
     private int called = 0;
 
@@ -73,7 +86,9 @@ public class TNDP extends Problem
         solutionType_ = new RouteSetSolutionType(this);
         readFromFile(ins.getTimeFile(), time);
         totalDemand = readDemandFromFile(ins.getDemandFile(), demand);
+        readDepotsFromFile(ins.getDepotFile());
         fixZones(ins.getZoneListFile(), centroid_distance);
+        prepareAllRoute(ins.getRoutesFile());
         InputStream fml = new FileInputStream(ins.getEdgeListFile());
         EdgeWeight = new NumericalProperty(null, 8, 0);
         EdgeListReader.alterGraph(g, fml, false, false, null);
@@ -92,8 +107,8 @@ public class TNDP extends Problem
         RouteSet rs = (RouteSet) var[0];
         int Vertices = ins.getNumOfVertices();
         double[][] routeDemand = new double[rs.size()][];
-        ArrayList[][] allPath = new ArrayList[zoneIndexMapping.size()+1][shelters.length];
-        HashMap[][] allPathClass = new HashMap[zoneIndexMapping.size()+1][shelters.length];
+        ArrayList[][] allPath = new ArrayList[zoneIndexMapping.size()+1][shelters.size()];
+        HashMap[][] allPathClass = new HashMap[zoneIndexMapping.size()+1][shelters.size()];
         // HashMap[][] allPathGroup = new HashMap[Vertices][Vertices];
         int[][] edgeUsage = new int[Vertices][Vertices];
         double[][] edgeFreqSum = new double[Vertices][Vertices];
@@ -106,9 +121,9 @@ public class TNDP extends Problem
         
         for (Map.Entry<Integer, ArrayList<Integer>> entry : zoneStopMapping.entrySet())
         {
-            for (int j = 0; j < shelters.length; j++)
+            for (Map.Entry<Integer, int []> itr : shelters.entrySet())
             {
-                ArrayList<Path> paths = generateAllPath(entry.getValue(), shelters[j], rs);
+                ArrayList<Path> paths = generateAllPath(entry.getValue(), itr.getKey(), rs);
                 HashMap<Integer, ArrayList<Path>> pathClass = new HashMap<>();
                 // HashMap<String, ArrayList<Path>> pathGroup = new HashMap<>();
                 screenPath(paths, rs);
@@ -125,8 +140,8 @@ public class TNDP extends Problem
                 //     classifyPaths(paths, pathClass, pathGroup);
                 //     rs.d[paths.get(0).getNumOfSegment() - 1] += demand[i][j]; //d0 => 1 segement, d1=> 2 segment
                 // }
-                allPath[getIndex(entry.getKey())][j] = paths;
-                allPathClass[getIndex(entry.getKey())][j] = pathClass;
+                allPath[getIndex(entry.getKey())][getShelterIndex(itr.getKey())] = paths;
+                allPathClass[getIndex(entry.getKey())][getShelterIndex(itr.getKey())] = pathClass;
                 // allPathGroup[i][j] = pathGroup;
 
             }
@@ -139,10 +154,10 @@ public class TNDP extends Problem
             }
             for (Map.Entry<Integer, ArrayList<Integer>> entry : zoneStopMapping.entrySet())
             {
-                for (int j = 0; j < shelters.length; j++)
+                for (Map.Entry<Integer, int []> itr : shelters.entrySet())
                 {
-                    splitDemand(allPath[getIndex(entry.getKey())][j], allPathClass[getIndex(entry.getKey())][j]);
-                    assignDemand(allPath[getIndex(entry.getKey())][j], demand.get(entry.getKey())[j], rs, routeDemand);
+                    splitDemand(allPath[getIndex(entry.getKey())][getShelterIndex(itr.getKey())], allPathClass[getIndex(entry.getKey())][getShelterIndex(itr.getKey())]);
+                    assignDemand(allPath[getIndex(entry.getKey())][getShelterIndex(itr.getKey())], demand.get(entry.getKey())[getShelterIndex(itr.getKey())], rs, routeDemand);
                 }
             }
         // } while (!findMLS(rs, routeDemand));
@@ -323,7 +338,7 @@ public class TNDP extends Problem
                 }
                 for (si++; si <= ei; si++)
                 {
-                    totalTime += time[r.nodeList.get(si)][r.nodeList.get(si - 1)];
+                    totalTime += time[r.nodeList.get(si).stopId][r.nodeList.get(si - 1).stopId];
                 }
             }
             p.setTotalInVehicleTime(totalTime);
@@ -349,12 +364,13 @@ public class TNDP extends Problem
         for (Path p : paths)
         {
             double pathCongestedTravelTime = 0; 
-            for (Path.Segment seg : p.segList)
+            for (int i = 0; i < p.segList.size(); i++)
             {
                 double segTotalTime = 0;
-                Route r = rs.getRoute(seg.routeId);
-                int si = r.nodeList.indexOf(seg.startNode);
-                int ei = r.nodeList.indexOf(seg.endNode);
+                Path.Segment seq = (Path.Segment) p.segList.get(i);
+                Route r = rs.getRoute(seq.routeId);
+                int si = r.nodeList.indexOf(seq.startNode);
+                int ei = r.nodeList.indexOf(seq.endNode);
                 if (si > ei)
                 {
                     int t = si;
@@ -363,7 +379,7 @@ public class TNDP extends Problem
                 }
                 for (si++; si <= ei; si++)
                 {
-                    segTotalTime += time[r.nodeList.get(si)][r.nodeList.get(si - 1)];
+                    segTotalTime += time[r.nodeList.get(si).stopId][r.nodeList.get(si - 1).stopId];
                 }
                 pathCongestedTravelTime =+ segTotalTime*r.getCongestionFactor();
             }
@@ -373,7 +389,7 @@ public class TNDP extends Problem
 
     public void route_destination_check(ArrayList<Route> routeSet, String s) {
         for (Route r: routeSet) {
-            if (!isShelter(r.nodeList.get(r.nodeList.size() - 1))) {
+            if (!isShelter(r.nodeList.get(r.nodeList.size() - 1).stopId)) {
                 System.out.println("Last node is not shelter ... "+ s);
                 System.exit(0);
             }
@@ -431,11 +447,12 @@ public class TNDP extends Problem
         for (Path p : paths)
         {
             double allocatedDem = demand * p.demandPerc;
-            for (Path.Segment seg : p.segList)
+            for (int i = 0; i < p.segList.size(); i++)
             {
-                Route r = rs.getRoute(seg.routeId);
-                int si = r.nodeList.indexOf(seg.startNode);
-                int ei = r.nodeList.indexOf(seg.endNode);
+                Path.Segment seq = (Path.Segment) p.segList.get(i);
+                Route r = rs.getRoute(seq.routeId);
+                int si = r.nodeList.indexOf(seq.startNode);
+                int ei = r.nodeList.indexOf(seq.endNode);
                 if (si > ei)
                 {
                     int t = si;
@@ -444,7 +461,7 @@ public class TNDP extends Problem
                 }
                 for (si++; si <= ei; si++)
                 {
-                    routeDemand[seg.routeId][si] += allocatedDem;
+                    routeDemand[seq.routeId][si] += allocatedDem;
                 }
             }
         }
@@ -524,16 +541,16 @@ public class TNDP extends Problem
         int vertices = ins.getNumOfVertices();
         for (Map.Entry<Integer, ArrayList<Integer>> entry : zoneStopMapping.entrySet())
         {
-            for (int j = 0; j < shelters.length; j++)
+            for (Map.Entry<Integer, int []> itr : shelters.entrySet())
             {
-                if (allPath[getIndex(entry.getKey())][j] != null)
+                if (allPath[getIndex(entry.getKey())][getShelterIndex(itr.getKey())] != null)
                 {
                     // if (allPath[entry.getKey()][j].get(0).getNumOfSegment() == 1) //direct path with no transfer, uses only one route
                     // {
-                        for (Path p : allPath[getIndex(entry.getKey())][j])
+                        for (Path p : allPath[getIndex(entry.getKey())][getShelterIndex(itr.getKey())])
                         {   
                             Route r = rs.getRoute(p.getRouteOfSeg(0));
-                            total += p.demandPerc * demand.get(entry.getKey())[j] * p.totalInVehicleTime * r.getCongestionFactor(); //ITS Revision: Consider congestion
+                            total += p.demandPerc * demand.get(entry.getKey())[getShelterIndex(itr.getKey())] * p.totalInVehicleTime * r.getCongestionFactor(); //ITS Revision: Consider congestion
                         }                         
                     // }
                     // else
@@ -559,11 +576,11 @@ public class TNDP extends Problem
         int vertices = ins.getNumOfVertices();
         for (Map.Entry<Integer, ArrayList<Integer>> entry : zoneStopMapping.entrySet())
         {
-            for (int j = 0; j < shelters.length; j++)
+            for (Map.Entry<Integer, int []> itr : shelters.entrySet())
             {
-                if (allPath[getIndex(entry.getKey())][j] != null)
+                if (allPath[getIndex(entry.getKey())][getShelterIndex(itr.getKey())] != null)
                 {
-                    for (Path p : (ArrayList<Path>) allPath[getIndex(entry.getKey())][j]) //for each path
+                    for (Path p : (ArrayList<Path>) allPath[getIndex(entry.getKey())][getShelterIndex(itr.getKey())]) //for each path
                     {
                         double pathWT = 0;
                         for (int k = 0; k < p.segList.size(); k++)
@@ -571,7 +588,7 @@ public class TNDP extends Problem
                             Route r = rs.getRoute(p.getRouteOfSeg(k));
                             pathWT += r.calculateWaitingTime() * r.getCongestionFactor(); //ITS Revision: Consider congestion
                         }
-                        totalWT += p.demandPerc * demand.get(entry.getKey())[j] * pathWT;
+                        totalWT += p.demandPerc * demand.get(entry.getKey())[getShelterIndex(itr.getKey())] * pathWT;
                     }
 
                 }
@@ -584,9 +601,9 @@ public class TNDP extends Problem
         double centroid_distance = 0;
         for (int i = 0; i < rs.size(); i++) {
             Route r = rs.getRoute(i);
-            for (Integer s: r.nodeList) {
-                if (!isShelter(s)) {
-                    centroid_distance += this.centroid_distance[s];
+            for (BusStop s: r.nodeList) {
+                if (!isShelter(s.stopId) && s.isInterval) {
+                    centroid_distance += this.centroid_distance[s.stopId];
                 }
             }
         }
@@ -602,7 +619,7 @@ public class TNDP extends Problem
             double routeDO = 0;
             for (int i = 1; i < r.nodeList.size(); i++)
             {
-                int v0 = r.nodeList.get(i), v1 = r.nodeList.get(i - 1);
+                int v0 = r.nodeList.get(i).stopId, v1 = r.nodeList.get(i - 1).stopId;
                 if (edgeUsage[v0][v1] > 1)
                 {
                     routeDO += time[v0][v1];
@@ -642,15 +659,28 @@ public class TNDP extends Problem
     }
 
     public boolean isShelter(int stop) {
-        for (int i = 0; i < shelters.length; i++ ){
-            if (shelters[i] == stop)
+        for (Map.Entry<Integer, int []> itr : shelters.entrySet()){
+            if (itr.getKey() == stop)
                 return true;
         }
         return false;
     }
-
+    public int getShelterIndex(int shelter_id) {
+        if (shelter_id == 14) return 0;
+        else if (shelter_id == 47) return 1;
+        throw new Error("It is not a shelter");
+    }
     public int getNumberofShelters() {
-        return shelters.length;
+        return shelters.size();
+    }
+    public int getNumberofDepots() {
+        return depots.size();
+    }
+    public Set<Integer> getAllZones() {
+        return zoneStopMapping.keySet();
+    }
+    public Set<Integer> getAllShelters() {
+        return shelters.keySet();
     }
     public int getNumberofZones() {
         return zoneStopMapping.size();
@@ -672,6 +702,63 @@ public class TNDP extends Problem
                 java.lang.System.exit(0);
             }
         }
+    }
+    public String convertToString(int depot, int shelter) {
+        return String.valueOf(depot) + "->" + String.valueOf(shelter);
+    } 
+    public int[] convertToInt(String encode_string) {
+        String[] numbers = encode_string.split("->");
+        int[] split = new int[2]; 
+        split[0] = Integer.parseInt(numbers[0]);
+        split[1] = Integer.parseInt(numbers[1]); 
+        return split;
+    }
+    public HashMap<Integer, ArrayList<Integer>> findZones(List<Integer> nodeList) {
+        HashMap<Integer, ArrayList<Integer>> zones = new HashMap<Integer, ArrayList<Integer>>();
+        zones.clear();
+        int c;
+        int index = 0;
+        for (Integer e: nodeList) {
+            if (!isShelter(e)) {
+                if (!zones.containsKey(zone_ref[e])) {
+                    zones.put(zone_ref[e], new ArrayList<>());
+                }
+                zones.get(zone_ref[e]).add(index);
+            }
+            index++;
+        }
+        return zones;
+    }
+    public void prepareAllRoute(String fileName) throws Exception {
+        BufferedReader reader = new BufferedReader(new FileReader(fileName));
+        int index = 1;
+        List<Integer> nodeList = new ArrayList<Integer>();
+        HashMap<Integer, ArrayList<Integer>> zones = new HashMap<Integer, ArrayList<Integer>>();
+        String line ;
+        String key;
+        while((line = reader.readLine()) != null){
+            
+            for (String stop : line.split(" ")) {
+                nodeList.add(Integer.parseInt(stop));
+            }
+            key = convertToString(nodeList.get(0), nodeList.get(nodeList.size() - 1));
+            
+            zones.clear();
+            zones = findZones(nodeList);
+            if (!all_probable_route.containsKey(key))
+            {
+                all_probable_route.put(key, new ArrayList<>());
+            }
+            all_probable_route.get(key).add(
+                new Passage(nodeList, zones, index)
+            );
+            nodeList.clear();
+            
+            index++;
+        }
+        System.out.println("All Routes Scanned");
+        reader.close();
+        return;
     }
     public ArrayList<Integer> uncoveredNodes(Set<Integer> coveredNodes) {
         HashMap<Integer, ArrayList<Integer>> isZoneCovered = new HashMap<Integer, ArrayList<Integer>>();
@@ -700,17 +787,17 @@ public class TNDP extends Problem
         if (!uncoveredNodes(coveredNodes).isEmpty())
             return false;
         zoneNeedAttention.clear();
-        for (int i = 0; i < shelters.length; i++) {
-            zoneNeedAttention.put(shelters[i], new ArrayList<Integer>());
+        for (Map.Entry<Integer, int []> itr : shelters.entrySet()) {
+            zoneNeedAttention.put(itr.getKey(), new ArrayList<Integer>());
         }
         for (Map.Entry<Integer, ArrayList<Integer>> entry : zoneStopMapping.entrySet()) {
-            for (int i = 0; i < shelters.length; i++) {
-                zoneNeedAttention.get(shelters[i]).add(entry.getKey());
+            for (Map.Entry<Integer, int []> itr : shelters.entrySet()) {
+                zoneNeedAttention.get(itr.getKey()).add(entry.getKey());
             }
             for (Route r: routeSet) {
                 for (Integer s: r.shelterList) {
                     Set<Integer> set1 = new HashSet<Integer>(entry.getValue());
-                    Set<Integer> set2 = new HashSet<Integer>(r.nodeList);
+                    Set<Integer> set2 = new HashSet<Integer>(r.getAllBusStops());
                     if (Sets.intersection(set1, set2).size() > 0) {
                         zoneNeedAttention.get(s).remove(new Integer(entry.getKey()));
                     }
@@ -754,57 +841,84 @@ public class TNDP extends Problem
         }
         return fit;
     }
-    public int[] determineRoute(int source) {
-        double fit[] = new double[3];
+    public Passage determineRoute(int source, int sink, int [][] currentFrequency, Set<Integer> currentPassage) {
+        double fit[];
         int paths[][] = new int[3][]; 
-        double total = 0.0;
-        for (int i = 0; i < shelters.length; i++ ){
-            if (g.containsAPath(source, shelters[i])){
-                paths[i] = g.getShortestPath(source, shelters[i], EdgeWeight).toVertexArray();
-                fit[i] = (double) (1.0 / paths[i].length);                 
-                total += fit[i];
-            }
-            else {
-                fit[i] = 0.0;
-            }
-            // System.out.println(fit[i]);
-        }
+        int total = 0;
+        int maxFreq = 0;
+        String key;
+        int [] in_nodes = shelters.get(sink);
+        List<Passage> temp = new ArrayList<Passage>();
+        Set<Integer> zones = new HashSet<Integer>();
+        temp.clear();
+        zones.clear();
         
-        int p = PseudoRandom.roulette_wheel(fit, 0);
-        return paths[p];
-    }
-    public boolean nodeCanBeDeleted(RouteSet rs, int node) 
-    {
-        if (isShelter(node)) {
-            return false;
-        }
-        int zone = zone_ref[node];
-        ArrayList<Integer> temp = new ArrayList<Integer>(zoneStopMapping.get(zone));
-        temp.remove(new Integer(node));
-        if (temp.isEmpty())
-            return false;
-        HashMap<Integer, Boolean> isReached = new HashMap<Integer, Boolean>();
-        for (int i = 0; i < shelters.length; i++) {
-            isReached.put(shelters[i], false);
-        }
-        Set<Integer> set1 = new HashSet<Integer>(temp);
-        for (int i = 0; i < rs.size(); i++)
-        {
-            Route r = rs.getRoute(i);
-            Set<Integer> set2 = new HashSet<Integer>(r.nodeList);
-            if (!Collections.disjoint(set1, set2)) {
-                for (Integer s: r.shelterList) {
-                    isReached.replace(s, true);
-                }
+        key = convertToString(source, sink);
+        for(Passage p: all_probable_route.get(key)) {
+            if (currentPassage.contains(p.index)) {
+                continue;
             }
+            temp.add(p);
+            zones.addAll(new HashSet<Integer>(p.zoneList.keySet()));
         }
-        for (Integer s: isReached.keySet()) {
-            if (!isReached.get(s)) {
-                return false;                    
+        if (temp.size() == 0) {
+            throw new Error("May be there are some errors");
+        }
+        fit = new double [temp.size()];
+        for(Integer i: zones) {
+            maxFreq = Math.max(maxFreq, currentFrequency[getIndex(i)][getShelterIndex(sink)]);
+        }
+        int index = 0;
+        int fit_value = 0;
+        for (Passage p: temp) {
+            fit_value = 0;
+            for (Map.Entry<Integer, ArrayList<Integer>> entry: p.zoneList.entrySet()) {
+                fit_value += (currentFrequency[getIndex(entry.getKey())][getShelterIndex(sink)] > 0) ? 0 : 1;
             }
+            fit[index++] = fit_value;
+            total += fit_value;
         }
-        return true;
+        int p;
+        if (total == 0) {
+            p = PseudoRandom.nextInt(fit.length);
+        }
+        else {
+            p = PseudoRandom.roulette_wheel(fit, total);
+        }
+        return temp.get(p);
     }
+    // public boolean nodeCanBeDeleted(RouteSet rs, int node) 
+    // {
+    //     if (isShelter(node)) {
+    //         return false;
+    //     }
+    //     int zone = zone_ref[node];
+    //     ArrayList<Integer> temp = new ArrayList<Integer>(zoneStopMapping.get(zone));
+    //     temp.remove(new Integer(node));
+    //     if (temp.isEmpty())
+    //         return false;
+    //     HashMap<Integer, Boolean> isReached = new HashMap<Integer, Boolean>();
+    //     for (Map.Entry<Integer, int []> itr : shelters.entrySet()) {
+    //         isReached.put(itr.getKey(), false);
+    //     }
+    //     Set<Integer> set1 = new HashSet<Integer>(temp);
+    //     for (int i = 0; i < rs.size(); i++)
+    //     {
+    //         Route r = rs.getRoute(i);
+    //         Set<Integer> set2 = new HashSet<Integer>(r.nodeList);
+    //         if (!Collections.disjoint(set1, set2)) {
+    //             for (Integer s: r.shelterList) {
+    //                 isReached.replace(s, true);
+    //             }
+    //         }
+    //     }
+    //     for (Integer s: isReached.keySet()) {
+    //         if (!isReached.get(s)) {
+    //             return false;                    
+    //         }
+    //     }
+    //     return true;
+    // }
     private int readDemandFromFile(String fileName, HashMap<Integer, int[]> data) throws Exception
     {
         int sum = 0;
@@ -830,6 +944,19 @@ public class TNDP extends Problem
         }
         reader.close();
         return sum;
+    }
+    private void readDepotsFromFile(String fileName) throws Exception
+    {
+        int sum = 0;
+        BufferedReader reader = new BufferedReader(new FileReader(fileName));
+        String line;
+        while((line = reader.readLine()) != null){
+            // System.out.println(line);
+            for (String stop : line.split(" ")) {
+                depots.add(Integer.parseInt(stop));
+            }
+        }
+        reader.close();
     }
     private double readFromFile(String fileName, int[][] data) throws Exception
     {
