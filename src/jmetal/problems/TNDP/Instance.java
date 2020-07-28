@@ -21,6 +21,8 @@ public abstract class Instance
     protected int minNode;
     protected  int maxNode;
     protected String name;
+    protected String centroidFile;
+    protected String zoneListFile;
 
     public int getNumOfVertices()
     {
@@ -39,7 +41,7 @@ public abstract class Instance
 
     public String getDemandFile()
     {
-        return dir + "HalifaxZoneDemand.txt";
+        return dir + demandFile;
     }
 
     public String getTimeFile()
@@ -59,9 +61,14 @@ public abstract class Instance
 
     public String getZoneListFile()
     {
-        return dir + "HalifaxZone.txt";
+        return dir + zoneListFile;
     }
 
+    public String getZoneStopCentroidFile()
+    {
+        return dir + centroidFile;
+    }
+    
     public int getMinNode()
     {
         return minNode;

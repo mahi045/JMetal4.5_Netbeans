@@ -17,6 +17,8 @@ public class Halifax  extends Instance{
         timeFile = "HalifaxTime.txt";
         RouteFile = "MandlPRoute.txt";
         EdgeListFile = "HalifaxEdgelist.txt";
+        centroidFile = "HalifaxZoneDistance.txt";
+        zoneListFile = "HalifaxZone.txt";
         minNode = 10;
         maxNode = 40;
         name = "Halifax";

@@ -82,6 +82,7 @@ public class TNDP extends Problem
         readFromFile(ins.getTimeFile(), time);
         totalDemand = readDemandFromFile(ins.getDemandFile(), demand);
         fixZones(ins.getZoneListFile(), centroid_distance);
+        fixCentroid(ins.getZoneStopCentroidFile(), centroid_distance);
         InputStream fml = new FileInputStream(ins.getEdgeListFile());
         EdgeWeight = new NumericalProperty(null, 8, 0);
         EdgeListReader.alterGraph(g, fml, false, false, null);
@@ -958,12 +959,34 @@ public class TNDP extends Problem
                 else {
                     stopId = Integer.parseInt(stop);
                     zoneStopMapping.get(zone).add(stopId);
-                    centroid_distance[stopId] = PseudoRandom.randDouble(0.1, 100.0);
+                    // centroid_distance[stopId] = PseudoRandom.randDouble(0.1, 100.0);
                     zone_ref[stopId] = zone;
                 }
                 index++;
             }
             bug_fix.put(zone, index - 1);
+        }
+        reader.close();
+        return;
+    }
+    private void fixCentroid(String fileName, double[] centroid_distance) throws Exception
+    {
+        BufferedReader reader = new BufferedReader(new FileReader(fileName));
+        int index, zone = 0;
+        int stopId = 0;
+        String line ;
+        while((line = reader.readLine()) != null){
+            index = 0;
+            for (String stop : line.split(" ")) {
+                if (index == 0) {
+                    zone = Integer.parseInt(stop);
+                }
+                else {
+                    stopId = zoneStopMapping.get(zone).get(index-1);
+                    centroid_distance[stopId] = Double.parseDouble(stop);
+                }
+                index++;
+            }
         }
         reader.close();
         return;
