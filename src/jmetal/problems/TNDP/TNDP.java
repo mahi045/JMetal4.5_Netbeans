@@ -43,7 +43,7 @@ public class TNDP extends Problem
 
     private int numOfRoutes;
     private HashMap<Integer, int[]> demand;
-    private int[][] time;
+    private double[][] time;
     private double[] centroid_distance;
     private int[] zone_ref;
     HashMap<Integer, ArrayList<Integer>> zoneStopMapping = new HashMap<Integer, ArrayList<Integer>>();
@@ -67,13 +67,14 @@ public class TNDP extends Problem
         numberOfConstraints_ = 2;
         problemName_ = ins.getName() + "-" +_numOfRoutes;
         demand = new HashMap<Integer, int[]>();
-        time = new int[ins.getNumOfVertices()][ins.getNumOfVertices()];
+        time = new double[ins.getNumOfVertices()][ins.getNumOfVertices()];
         centroid_distance = new double[ins.getNumOfVertices()];
         zone_ref = new int[ins.getNumOfVertices()];
         solutionType_ = new RouteSetSolutionType(this);
         readFromFile(ins.getTimeFile(), time);
         totalDemand = readDemandFromFile(ins.getDemandFile(), demand);
         fixZones(ins.getZoneListFile(), centroid_distance);
+        fixCentroid(ins.getZoneStopCentroidFile(), centroid_distance);
         InputStream fml = new FileInputStream(ins.getEdgeListFile());
         EdgeWeight = new NumericalProperty(null, 8, 0);
         EdgeListReader.alterGraph(g, fml, false, false, null);
@@ -636,7 +637,7 @@ public class TNDP extends Problem
     //     return demand[i][j];
     // }
 
-    public int getTime(int i, int j)
+    public double getTime(int i, int j)
     {
         return time[i][j];
     }
@@ -817,7 +818,7 @@ public class TNDP extends Problem
             for (String stop : line.split(" ")) {
                 if (index == 0) {
                     zone = Integer.parseInt(stop);
-                    demand.put(zone, new int[3]);
+                    demand.put(zone, new int[2]);
                     zoneIndexMapping.put(zone, zoneIndexMapping.size());
                 }
                 else {
@@ -831,7 +832,7 @@ public class TNDP extends Problem
         reader.close();
         return sum;
     }
-    private double readFromFile(String fileName, int[][] data) throws Exception
+    private double readFromFile(String fileName, double[][] data) throws Exception
     {
 
         double sum = 0;
@@ -844,10 +845,10 @@ public class TNDP extends Problem
                 String s = sc.next();
                 if (s.equals("-"))
                 {
-                    data[i][j] = Integer.MAX_VALUE;
+                    data[i][j] = Double.MAX_VALUE;
                 } else
                 {
-                    data[i][j] = Integer.parseInt(s);
+                    data[i][j] = Double.parseDouble(s);
                     sum += data[i][j];
                 }
             }
@@ -882,7 +883,29 @@ public class TNDP extends Problem
         reader.close();
         return;
     }
-    public int[][] getTime()
+    private void fixCentroid(String fileName, double[] centroid_distance) throws Exception
+    {
+        BufferedReader reader = new BufferedReader(new FileReader(fileName));
+        int index, zone = 0;
+        int stopId = 0;
+        String line ;
+        while((line = reader.readLine()) != null){
+            index = 0;
+            for (String stop : line.split(" ")) {
+                if (index == 0) {
+                    zone = Integer.parseInt(stop);
+                }
+                else {
+                    stopId = zoneStopMapping.get(zone).get(index-1);
+                    centroid_distance[stopId] = Double.parseDouble(stop);
+                }
+                index++;
+            }
+        }
+        reader.close();
+        return;
+    }
+    public double[][] getTime()
     {
         return time;
     }

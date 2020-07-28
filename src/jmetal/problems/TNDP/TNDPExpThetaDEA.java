@@ -82,7 +82,7 @@ public class TNDPExpThetaDEA extends Experiment
         
         exp.problemList_ = new String[] //Can be extended
         {
-            "M1-20"
+            "Halifax-15"
         };
 
         exp.paretoFrontFile_ = new String[]{"M1-15.pf"}; //must be set as length of problemList_   String[]{"front.pf"}
@@ -95,7 +95,7 @@ public class TNDPExpThetaDEA extends Experiment
 
         exp.algorithmSettings_ = new Settings[numberOfAlgorithms];
 
-        exp.independentRuns_ = 20;
+        exp.independentRuns_ = 1;
 
         exp.initExperiment();
 

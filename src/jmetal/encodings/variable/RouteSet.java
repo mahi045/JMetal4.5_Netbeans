@@ -197,7 +197,8 @@ public class RouteSet extends Variable
             
             if (!prob.isAllZoneCovered(chosen, zoneNeedAttention, routeSet))
             {
-                feasible = repair(chosen, prob);
+                //feasible = repair(chosen, prob);
+                feasible = true;
             } else
             {
                 feasible = true;
