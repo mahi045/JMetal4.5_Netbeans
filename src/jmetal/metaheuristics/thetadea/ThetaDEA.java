@@ -115,34 +115,38 @@ public class ThetaDEA extends Algorithm {
 		
 	
 		initPopulation();   // initialize the population;
-		
+		System.out.println("Done with population init");
 		initIdealPoint();  // initialize the ideal point
-		
+		System.out.println("Done with ideal point init");
 		initNadirPoint();    // initialize the nadir point
-		
+		System.out.println("Done with nadir point init");
 		initExtremePoints(); // initialize the extreme points
-		
+		System.out.println("Done with extreme point init");
 		
 		while (generations_ < maxGenerations) {
-			
+			System.out.printf("Starting Generation %d\n", generations_);
 			createOffSpringPopulation();  // create the offspring population
-			
+			System.out.printf("Created Offspring population for Generation %d\n", generations_);
 			union_ = population_.union(offspringPopulation_);
-	
+                        System.out.printf("Unionized Offspring population for Generation %d\n", generations_);
 			SolutionSet[] sets = getParetoFronts();
-			
+			System.out.printf("Got paretofront for Generation %d\n", generations_);
 			SolutionSet firstFront = sets[0];   // the first non-dominated front
 			SolutionSet stPopulation = sets[1]; // the population used in theta-non-dominated ranking
 			
 			updateIdealPoint(firstFront);  // update the ideal point
-			
+			System.out.printf("Updated ideal point from Generation %d\n", generations_);
 			if (normalize_){
+                                System.out.printf("Need to normalize in Generation %d\n", generations_);
 				updateNadirPoint(firstFront);  // update the nadir point
-				normalizePopulation(stPopulation);  // normalize the population using ideal point and nadir point
-			}
-
+				System.out.printf("Updated nadir point from Generation %d\n", generations_);
+                                normalizePopulation(stPopulation);  // normalize the population using ideal point and nadir point
+                                System.out.printf("Normalization done for Generation %d\n", generations_);
+                        }
+                        System.out.printf("Gettin next set of population for Generation %d\n", generations_ + 1);
 			getNextPopulation(stPopulation);  // select the next population using theta-non-dominated ranking
-			
+			System.out.printf("Got next set of population for Generation %d\n", generations_ + 1);
+                        System.out.printf("Done with Generation %d\n", generations_);
 			generations_++;
 			
 		}
@@ -384,9 +388,9 @@ public class ThetaDEA extends Algorithm {
 
 	
 	void updateNadirPoint(SolutionSet pop){
-		
+		System.out.println("updating extreme points");
 		updateExtremePoints(pop);
-
+                System.out.println("updating done extreme points");
 		
 		int obj = problem_.getNumberOfObjectives();
 		double[][] temp = new double[obj][obj];
@@ -397,20 +401,21 @@ public class ThetaDEA extends Algorithm {
 				temp[i][j] = val;
 			}
 		}
-
+                System.out.println("matrix initialization 1");
 		Matrix EX = new Matrix(temp);
-
-		boolean sucess = true;
-		
+                System.out.println("matrix initialization 1 done");
+		boolean sucess = false;
+		System.out.printf("%d\n", EX.getColumnDimension());
+                /*
 		if (EX.rank() == EX.getRowDimension()) {
 			double[] u = new double[obj];
 			for (int j = 0; j < obj; j++)
 				u[j] = 1;
-
+                        System.out.println("matrix initialization 2 ");
 			Matrix UM = new Matrix(u, obj);
-
+                        System.out.println("matrix initialization 2 done");
 			Matrix AL = EX.inverse().times(UM);
-
+                        System.out.println("matrix inversion done");
 			int j = 0;
 			for (j = 0; j < obj; j++) {
 
@@ -428,14 +433,15 @@ public class ThetaDEA extends Algorithm {
 		else 
 			sucess = false;
 		
-		
+		*/
 		if (!sucess){
+                        System.out.println("failure! computing max point");
 			double[] zmax = computeMaxPoint(pop);
 			for (int j = 0; j < obj; j++) {
 				znadir_[j] = zmax[j];
 			}
 		}
-	}
+        }
 	
 	
 	

@@ -95,7 +95,7 @@ public class TNDPExpThetaDEA extends Experiment
 
         exp.algorithmSettings_ = new Settings[numberOfAlgorithms];
 
-        exp.independentRuns_ = 20;
+        exp.independentRuns_ = 5;
 
         exp.initExperiment();
 
