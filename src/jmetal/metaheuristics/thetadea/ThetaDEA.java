@@ -405,8 +405,8 @@ public class ThetaDEA extends Algorithm {
 		Matrix EX = new Matrix(temp);
                 System.out.println("matrix initialization 1 done");
 		boolean sucess = false;
-		System.out.printf("%d\n", EX.getColumnDimension());
-                /*
+		System.out.printf("Calling Ex.rank() is making the program stuck, TNDPExpThetaDEA.java, line 410");
+                
 		if (EX.rank() == EX.getRowDimension()) {
 			double[] u = new double[obj];
 			for (int j = 0; j < obj; j++)
@@ -433,7 +433,7 @@ public class ThetaDEA extends Algorithm {
 		else 
 			sucess = false;
 		
-		*/
+		
 		if (!sucess){
                         System.out.println("failure! computing max point");
 			double[] zmax = computeMaxPoint(pop);
