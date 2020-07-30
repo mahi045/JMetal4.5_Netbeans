@@ -99,7 +99,6 @@ public class RouteSet extends Variable
 
     public void generateRouteSet(TNDP prob)
     {
-        System.out.println("Entering hell");
         int numOfRoutes = prob.getNumberOfRoutes();
         int numOfVertices = prob.ins.getNumOfVertices();
         int maxNode = prob.ins.getMaxNode();
@@ -235,7 +234,7 @@ public class RouteSet extends Variable
                 chosenCount = chosenCountLocal;
                 // System.out.println(routeSet);
                 prob.route_destination_check(routeSet, "Before Repair call");
-                System.out.printf("Created %d route\n", count);
+                // System.out.printf("Created %d route\n", count);
             }
             
 //            if (!prob.isAllZoneCovered(chosen, zoneNeedAttention, routeSet))
@@ -247,9 +246,8 @@ public class RouteSet extends Variable
             // }
 
         } while (!feasible);
-        System.out.println("Luckily, it is finished ... ");
+        System.out.println("Luckily, generating routeset is finished ... ");
         prob.route_destination_check(routeSet, "Generate Route Set");
-        System.out.println("it is finished ... ");
     }
 
     public boolean repair(Set<Integer> chosen, TNDP prob)
