@@ -71,13 +71,13 @@ def route_process(
                 node2 = route[_]
 
                 # first check if node1 in stop list
-                if simulator.stop_list is not None and node1 in simulator.stop_list:
+                if simulator.stop_list is None or node1 in simulator.stop_list:
                     if simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] > 0 and vacancies > 0:
                         with simulator.all_bus_stop[node1].machine.request() as request:
                             yield request
                             yield simulator.env.timeout(configuration.BUS_STOP_STANDING_TIME)
                             print('%s stops at bus stop (%d) at %.2f.' % (fleet_number, node1, simulator.env.now))
-                            evacuee = min(vacancies, self.all_bus_stop[node1].number_of_evacuee[des_shelter_index])
+                            evacuee = min(vacancies, simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index])
                             simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] -= evacuee
                             vacancies -= evacuee
 
@@ -197,3 +197,4 @@ if __name__ == "__main__":
     )
     # simulate
     simulator.simulate()
+
