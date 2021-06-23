@@ -26,7 +26,7 @@ public class GetFunFromVar
     /**
      * @param args the command line arguments
      */
-    static String varFile = "VAR_Heu.txt";  
+    static String varFile = "solution_set.txt";  
     static Instance ins = new Halifax();
     public static void main(String[] args) throws Exception
     {
@@ -38,6 +38,7 @@ public class GetFunFromVar
         SolutionSet pop = new SolutionSet();
         FileReader fr = new FileReader(ins.dir + varFile);
         BufferedReader br = new BufferedReader(fr);
+        int solution_index = 1;
         while (true)
         {
             String line = br.readLine();
@@ -53,6 +54,9 @@ public class GetFunFromVar
                 tndp = new TNDP(rs.size(), ins);
             }
             sol = new Solution(tndp, variables);
+            sol.simulator_ = true;
+            sol.dirname_ = ins.dir + "/simulator/";
+            sol.suffix_ = Integer.toString(solution_index++);
             tndp.evaluate(sol);
             tndp.evaluateConstraints(sol);
             pop.add(sol);

@@ -20,6 +20,8 @@ public class Route implements Comparable
     //int id;
     public double frequency = 1;
     public int fleet = 1;
+    public int tripRequired = 1;
+    public double del = 1;
     double revFreq = -1;
     double roundTripTime;
     int MLS;

@@ -4,7 +4,8 @@
  * and open the template in the editor.
  */
 package jmetal.problems.TNDP;
-
+import java.io.*;
+import jmetal.util.Configuration;
 import jmetal.core.Problem;
 import jmetal.core.Solution;
 import jmetal.util.JMException;
@@ -30,6 +31,8 @@ import com.google.common.collect.Sets;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import jmetal.core.Variable;
 import jmetal.encodings.solutionType.RouteSetSolutionType;
@@ -49,6 +52,7 @@ public class TNDP extends Problem
     private int numOfRoutes;
     private HashMap<Integer, int[]> demand;
     private double[][] time;
+    private double[][] demandBusStopWise;
     private double[] centroid_distance;
     private int[] zone_ref;
     HashMap<Integer, ArrayList<Integer>> zoneStopMapping = new HashMap<Integer, ArrayList<Integer>>();
@@ -83,6 +87,7 @@ public class TNDP extends Problem
         problemName_ = ins.getName() + "-" +_numOfRoutes;
         demand = new HashMap<Integer, int[]>();
         time = new double[ins.getNumOfVertices()][ins.getNumOfVertices()];
+        demandBusStopWise = new double[ins.getNumOfVertices()][shelters.length];
         centroid_distance = new double[ins.getNumOfVertices()];
         zone_ref = new int[ins.getNumOfVertices()];
         solutionType_ = new RouteSetSolutionType(this);
@@ -123,6 +128,11 @@ public class TNDP extends Problem
         for (int k = 0; k < rs.size(); k++)
         {
             routeDemand[k] = new double[rs.getRoute(k).size()];
+        }
+        for (int k = 0; k < ins.getNumOfVertices(); k++)
+        {
+            demandBusStopWise[k][0] = 0;
+            demandBusStopWise[k][1] = 0;
         }
         setSharedStops(rs);
         for (Map.Entry<Integer, ArrayList<Integer>> entry : zoneStopMapping.entrySet())
@@ -221,9 +231,11 @@ public class TNDP extends Problem
         for (int k = 0; k < rs.size(); k++)
         {
             tripRequired = (int) Math.ceil((double) routeMLS[k]/rs.getRoute(k).getCapacity());
+            rs.getRoute(k).tripRequired = tripRequired;
             RL = rs.getRoute(k).calculateRouteLength_RoundTrip_edgeOverlap(time, edgeUsage, edgeFreqSum);
             totalRL += RL;
             del = (2 * RL) / (velocity * rs.getRoute(k).fleet);
+            rs.getRoute(k).del = del;
             one_way_time = 0;
             for (int kk = 0; kk < rs.getRoute(k).nodeList.size(); kk++) {
                 // this loop will compute the time for going one pass
@@ -370,7 +382,15 @@ public class TNDP extends Problem
         // if (called % 5000 == 0){
         //     System.out.println("It is called: "+ called +" times.");
         // }
-        
+        if (solution.simulator_) {
+            prepare_bus_stops_file(solution.dirname_, solution.suffix_);
+            try {
+                prepare_bus_edges_file(time, solution.dirname_, solution.suffix_);
+                prepare_bus_fleet_file(rs, solution.dirname_, solution.suffix_);
+            } catch (Exception ex) {
+                Logger.getLogger(TNDP.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     }
 
     private ArrayList<Path> generateAllPath(ArrayList<Integer> l, int d, RouteSet rs)
@@ -596,7 +616,7 @@ public class TNDP extends Problem
 
     }
 
-    private static void assignDemand(ArrayList<Path> paths, int demand, RouteSet rs, double routeDemand[][])
+    private void assignDemand(ArrayList<Path> paths, int demand, RouteSet rs, double routeDemand[][])
     {
         for (Path p : paths)
         {
@@ -606,6 +626,8 @@ public class TNDP extends Problem
                 Route r = rs.getRoute(seg.routeId);
                 int si = r.nodeList.indexOf(seg.startNode);
                 int ei = r.nodeList.indexOf(seg.endNode);
+                assert(isShelter(seg.endNode));
+                demandBusStopWise[seg.startNode][getShelterIndex(seg.endNode)] += allocatedDem;
                 if (si > ei)
                 {
                     int t = si;
@@ -832,6 +854,17 @@ public class TNDP extends Problem
                 return true;
         }
         return false;
+    }
+    
+    public int getShelterIndex(int stop) {
+        int index = -1;
+        for (int i = 0; i < shelters.length; i++ ){
+            if (shelters[i] == stop) {
+                index = i;
+                break;
+            }
+        }
+        return index;
     }
     
     public boolean isImmediateNode(int stop) {
@@ -1188,6 +1221,108 @@ public class TNDP extends Problem
         }
         reader.close();
         return;
+    }
+    
+    public void prepare_bus_stops_file(String file_path, String suffix) {
+        try {
+            FileOutputStream fos = new FileOutputStream(file_path + "Bus_Stops" + suffix + ".txt");
+            OutputStreamWriter osw = new OutputStreamWriter(fos);
+            BufferedWriter bw = new BufferedWriter(osw);
+            String line = "";
+            for (int v = 1; v < ins.getNumOfVertices(); v++) {
+                line = Integer.toString(v) + " " + Double.toString(demandBusStopWise[v][0]) +  " " + Double.toString(demandBusStopWise[v][1]);
+                bw.write(line);
+                bw.newLine();
+            }
+            bw.close();
+        }
+        catch (IOException e) {
+            Configuration.logger_.severe("Error acceding to the file");
+            e.printStackTrace();
+        }
+    }
+    private void prepare_bus_edges_file(double[][] data, String file_path, String suffix) throws Exception
+    {
+        try {
+            FileOutputStream fos = new FileOutputStream(file_path + "Bus_Edge" + suffix + ".txt");
+            OutputStreamWriter osw = new OutputStreamWriter(fos);
+            BufferedWriter bw = new BufferedWriter(osw);
+            String line = "";
+            for (int i = 0; i < data.length; i++)
+            {
+                for (int j = i + 1; j < data.length; j++)
+                {
+                    if (data[i][j] == Double.MAX_VALUE && data[j][i] == Double.MAX_VALUE) 
+                    {
+                        continue;
+                    }
+                    if (data[i][j] != Double.MAX_VALUE && data[i][j] == data[j][i])
+                    {
+                        line = Integer.toString(i) + " " + Integer.toString(j) + " " + Double.toString(data[i][j]) + " 2";
+                    }
+                    else {
+                        line = Integer.toString(i) + " " + Integer.toString(j) + " " + Double.toString(Math.min(data[i][j], data[j][i])) + " 1";
+                    }
+                    bw.write(line);
+                    bw.newLine();
+                }
+            }
+            bw.close();
+        }
+        catch (IOException e) {
+            Configuration.logger_.severe("Error acceding to the file");
+            e.printStackTrace();
+        }
+    }
+    private void prepare_bus_fleet_file(RouteSet rs, String file_path, String suffix) throws Exception
+    {
+        try {
+            FileOutputStream fos = new FileOutputStream(file_path + "Bus_Fleet" + suffix + ".txt");
+            OutputStreamWriter osw = new OutputStreamWriter(fos);
+            BufferedWriter bw = new BufferedWriter(osw);
+            String line = "";
+            String fleet_line = "";
+            String route_line = "";
+            String trip_line = "";
+            int fleet = 1;
+            int index = 1;
+            double interval;
+            for (int i = 0; i < rs.size(); i++)
+            {
+                route_line = "";
+                interval = 0.0;
+                for (int j = 0; j < rs.getRoute(i).nodeList.size(); j++) {
+                    if (j != rs.getRoute(i).nodeList.size() - 1) {
+                        route_line += (Integer.toString(rs.getRoute(i).nodeList.get(j)) + " ");
+                    }
+                    else {
+                        route_line += (Integer.toString(rs.getRoute(i).nodeList.get(j)));
+                    } 
+                }
+                for (int j = 0; j < rs.getRoute(i).fleet; j++) {
+                    fleet = rs.getRoute(i).tripRequired / rs.getRoute(i).fleet;
+                    if (j < rs.getRoute(i).tripRequired % rs.getRoute(i).fleet) {
+                        fleet++;
+                    }
+                    fleet_line = Integer.toString(fleet);
+                    line = "Fleet " + Integer.toString(index++) + " on " + Integer.toString(i) + "'th route";
+                    bw.write(line);
+                    bw.newLine();
+                    bw.write(route_line);
+                    bw.newLine();
+                    bw.write(Double.toString(interval));
+                    bw.newLine();
+                    interval += rs.getRoute(i).del;
+                    bw.write(fleet_line);
+                    bw.newLine();
+                }
+            }
+            bw.close();
+        }
+        catch (IOException e) {
+            Configuration.logger_.severe("Error acceding to the file");
+            e.printStackTrace();
+        }
     }
     public double[][] getTime()
     {

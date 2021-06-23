@@ -116,6 +116,9 @@ public class Solution implements Serializable
     private double vDistance_;
 
     private double[] normalizedObjective_;
+    public boolean simulator_;
+    public String dirname_;
+    public String suffix_;
 
     /**
      * Constructor.
@@ -130,6 +133,9 @@ public class Solution implements Serializable
         variable_ = null;
         objective_ = null;
         practical_delay_ = 0.0;
+        simulator_ = false;
+        dirname_ = "";
+        suffix_ = "";
 
     } // Solution
 
@@ -147,7 +153,9 @@ public class Solution implements Serializable
         objective_ = new double[numberOfObjectives];
         practical_delay_ = 0.0;
         normalizedObjective_ = new double[numberOfObjectives_];
-
+        simulator_ = false;
+        dirname_ = "";
+        suffix_ = "";
     }
 
     /**
@@ -175,6 +183,9 @@ public class Solution implements Serializable
         // <-
         // variable_ = problem.solutionType_.createVariables() ;
         variable_ = type_.createVariables();
+        simulator_ = false;
+        dirname_ = "";
+        suffix_ = "";
     } // Solution
 
     static public Solution getNewSolution(Problem problem) throws ClassNotFoundException
