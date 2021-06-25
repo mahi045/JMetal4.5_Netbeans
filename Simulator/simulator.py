@@ -44,10 +44,6 @@ class Bus_Stop(object):
 class Simulator:
     pass
 
-def get_shelter_index(a):
-    assert(a == 5 or a == 6)
-    return 0 if a == 5 else 1
-
 def route_process(
     simulator: Simulator, fleet_number: str, capacity:int, route: list, 
     interval: float, trip: int, stop_list: list=None):
@@ -62,7 +58,7 @@ def route_process(
         size = len(route)
         print('%s starts at %.2f.' % (fleet_number, simulator.env.now))
         vacancies = capacity
-        des_shelter_index = get_shelter_index(route[-1])
+        des_shelter_index = configuration.get_shelter_index(route[-1])
         start_index = 1
         last_req = None
         last_resource = None
@@ -76,8 +72,10 @@ def route_process(
                 # first check if node1 in stop list
                 if simulator.stop_list is None or node1 in simulator.stop_list:
                     if simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] > 0 and vacancies > 0:
+                        request_time = simulator.env.now
                         new_req = simulator.all_bus_stop[node1].machine.request()
                         yield new_req
+                        configuration.WAITING_TIME += (simulator.env.now - request_time)
                         if last_req != None or last_resource != None:
                             last_resource.release(last_req)
                         yield simulator.env.timeout(configuration.BUS_STOP_STANDING_TIME)  
@@ -89,8 +87,10 @@ def route_process(
                         last_resource = simulator.all_bus_stop[node1].machine
 
                 print('%s request (%d, %d) at %.2f.' % (fleet_number, node1, node2, simulator.env.now))
+                request_time = simulator.env.now
                 new_req = simulator.all_edge[node1,node2].machine.request()
                 yield new_req
+                configuration.WAITING_TIME += (simulator.env.now - request_time)
                 if last_req != None or last_resource != None:
                     last_resource.release(last_req)
                 yield simulator.env.process(simulator.all_edge[node1,node2].pass_the_edge(fleet_number))
@@ -100,9 +100,11 @@ def route_process(
             print('Trip %d of %s goes to shelter at %.2f.' % (trip_number, fleet_number, simulator.env.now))
             # capacity will be zero
             vacancies = capacity
+            request_time = simulator.env.now
             new_req = simulator.all_bus_stop[route[-1]].machine.request()
             print('%s request bus stop (%d) at %.2f.' % (fleet_number, route[-1], simulator.env.now))
             yield new_req
+            configuration.WAITING_TIME += (simulator.env.now - request_time)
             if last_req != None or last_resource != None:
                 last_resource.release(last_req)
             # yield give times to get off the bus
@@ -121,8 +123,10 @@ def route_process(
                 node2 = route[_ - 1]
 
                 print('%s request (%d, %d) at %.2f.' % (fleet_number, node1, node2, simulator.env.now))
+                request_time = simulator.env.now
                 new_req = simulator.all_edge[node1,node2].machine.request()
                 yield new_req
+                configuration.WAITING_TIME += (simulator.env.now - request_time)
                 if last_req != None or last_resource != None:
                     last_resource.release(last_req)
                 yield simulator.env.process(simulator.all_edge[node1,node2].pass_the_edge(fleet_number))
@@ -204,6 +208,7 @@ class Simulator:
     def simulate(self):
         # Execute!
         self.env.run(until=configuration.SIM_TIME)
+        print("Waiting time: {0}".format(configuration.WAITING_TIME))
 
 
 if __name__ == "__main__":

@@ -2,3 +2,12 @@ SIM_TIME = 1000
 BUS_STOP_STANDING_TIME = 0.5
 SHELTER_EVACUATION_TIME = 1
 NUMBER_OF_LANE = 2
+WAITING_TIME = 0
+
+SHELTER_INDEX_1 = 5
+SHELTER_INDEX_2 = 6
+
+
+def get_shelter_index(a):
+    assert(a == SHELTER_INDEX_1 or a == SHELTER_INDEX_2)
+    return 0 if a == SHELTER_INDEX_1 else 1
