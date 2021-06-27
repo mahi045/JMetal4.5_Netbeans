@@ -26,7 +26,7 @@ public class GetFunFromVar
     /**
      * @param args the command line arguments
      */
-    static String varFile = "solution_set.txt";  
+    static String varFile = "VAR.0";  
     static Instance ins = new Halifax();
     public static void main(String[] args) throws Exception
     {

@@ -52,7 +52,7 @@ public class TNDP extends Problem
     private int numOfRoutes;
     private HashMap<Integer, int[]> demand;
     private double[][] time;
-    private double[][] demandBusStopWise;
+    private int[][] demandBusStopWise;
     private double[] centroid_distance;
     private int[] zone_ref;
     HashMap<Integer, ArrayList<Integer>> zoneStopMapping = new HashMap<Integer, ArrayList<Integer>>();
@@ -87,7 +87,7 @@ public class TNDP extends Problem
         problemName_ = ins.getName() + "-" +_numOfRoutes;
         demand = new HashMap<Integer, int[]>();
         time = new double[ins.getNumOfVertices()][ins.getNumOfVertices()];
-        demandBusStopWise = new double[ins.getNumOfVertices()][shelters.length];
+        demandBusStopWise = new int[ins.getNumOfVertices()][shelters.length];
         centroid_distance = new double[ins.getNumOfVertices()];
         zone_ref = new int[ins.getNumOfVertices()];
         solutionType_ = new RouteSetSolutionType(this);
@@ -186,13 +186,15 @@ public class TNDP extends Problem
             int MLS = 1;
             for (int j = 2; j < routeDemand[i].length; j++)
             {
+                assert routeDemand[i][j] >= routeDemand[i][j-1]; 
                 if (routeDemand[i][j] > MLSDemand)
                 {
                     MLS = j;
                     MLSDemand = routeDemand[i][j];
                 }
-
+                    
             }
+            assert routeDemand[i][routeDemand[i].length - 1] == MLSDemand;
             routeMLS[i] = (int) Math.ceil(MLSDemand);
             totalMLS += (int) Math.ceil(MLSDemand);
             rs.getRoute(i).fleet = 1;
@@ -203,15 +205,24 @@ public class TNDP extends Problem
         }
         Collections.sort(random_number_list);
         int r_index = 0;
+        int r_index_new = 0;
         int cum_demand = routeMLS[r_index];
         for (Integer e: random_number_list) {
             if (cum_demand < e) {
                 while(cum_demand < e) {
                     cum_demand += routeMLS[++r_index];
                 }
-
+                    
             }
-            rs.getRoute(r_index).fleet++;
+            r_index_new = r_index;
+            // check whether the route need more bus or not
+            while(rs.getRoute(r_index_new).fleet * rs.getRoute(r_index_new).getCapacity() >= routeMLS[r_index_new]) {
+                r_index_new++;
+                if (r_index_new >= rs.size()) {
+                    r_index_new = 0;
+                }
+            }
+            rs.getRoute(r_index_new).fleet++;
         }
         // this code is for testing
         int totalfleet = 0;
@@ -232,6 +243,7 @@ public class TNDP extends Problem
         {
             tripRequired = (int) Math.ceil((double) routeMLS[k]/rs.getRoute(k).getCapacity());
             rs.getRoute(k).tripRequired = tripRequired;
+            assert rs.getRoute(k).tripRequired * rs.getRoute(k).getCapacity() >= routeMLS[k];
             RL = rs.getRoute(k).calculateRouteLength_RoundTrip_edgeOverlap(time, edgeUsage, edgeFreqSum);
             totalRL += RL;
             del = (2 * RL) / (velocity * rs.getRoute(k).fleet);
@@ -272,14 +284,14 @@ public class TNDP extends Problem
                 }
                 if (sharedStops.contains(rs.getRoute(k).nodeList.get(kk))) {
                     stoping_time = first_stoping_time;
-                    for (int tt = 0; tt < tripRequired; tt++) {
-                        sharedStopsStatistics.get(to)
-                                .add(new Pair<>(k, stoping_time));
-                        // this .add consider that the bus stop at here when it returns back
-                        sharedStopsStatistics.get(to)
-                                .add(new Pair<>(k, stoping_time + 2 * one_way_time - 2 * stoping_time));
-                        stoping_time += del;
-                    }
+//                    for (int tt = 0; tt < tripRequired; tt++) {
+//                        sharedStopsStatistics.get(to)
+//                                .add(new Pair<>(k, stoping_time));
+//                        // this .add consider that the bus stop at here when it returns back
+//                        sharedStopsStatistics.get(to)
+//                                .add(new Pair<>(k, stoping_time + 2 * one_way_time - 2 * stoping_time));
+//                        stoping_time += del;
+//                    }
                 }
             }
 //            timeRequired = ((tripRequired / rs.getRoute(k).fleet) * (2 * RL) / (velocity))
@@ -332,9 +344,9 @@ public class TNDP extends Problem
             k_value = (int) Math.ceil((double) rs.getRoute(k).nodeList.size() / 10); // top-10% of practical evacuation time
             practicalTime[k] = 0;
             Collections.sort(temp_prac_time, Collections.reverseOrder());
-            for (int kk = 0; kk < k_value; kk++) {
-                practicalTime[k] += temp_prac_time.get(kk);
-            }
+//            for (int kk = 0; kk < k_value; kk++) {
+//                practicalTime[k] += temp_prac_time.get(kk);
+//            }
             evacuationTime = Math.max(evacuationTime, theoreticalTime[k] + practicalTime[k]);
         }
         double prac_delay = 0.0;
@@ -567,6 +579,10 @@ public class TNDP extends Problem
                 System.out.println("Last node is not shelter ... "+ s);
                 System.exit(0);
             }
+            Set<Integer> set = new HashSet<Integer>(r.nodeList);
+            if (set.size() < r.nodeList.size()) {   
+                System.out.println("There are duplicate elements in route");
+            }
         }
     }
 
@@ -618,6 +634,7 @@ public class TNDP extends Problem
 
     private void assignDemand(ArrayList<Path> paths, int demand, RouteSet rs, double routeDemand[][])
     {
+        int remaining_demand = demand;
         for (Path p : paths)
         {
             double allocatedDem = demand * p.demandPerc;
@@ -627,7 +644,8 @@ public class TNDP extends Problem
                 int si = r.nodeList.indexOf(seg.startNode);
                 int ei = r.nodeList.indexOf(seg.endNode);
                 assert(isShelter(seg.endNode));
-                demandBusStopWise[seg.startNode][getShelterIndex(seg.endNode)] += allocatedDem;
+                demandBusStopWise[seg.startNode][getShelterIndex(seg.endNode)] += (int) Math.floor(allocatedDem);
+                remaining_demand -= (int) Math.floor(allocatedDem);
                 if (si > ei)
                 {
                     int t = si;
@@ -639,6 +657,9 @@ public class TNDP extends Problem
                     routeDemand[seg.routeId][si] += allocatedDem;
                 }
             }
+        }
+        if (remaining_demand > 0) {
+            demandBusStopWise[paths.get(0).segList.get(0).startNode][getShelterIndex(paths.get(0).segList.get(0).endNode)] += remaining_demand;
         }
     }
 
@@ -1229,8 +1250,8 @@ public class TNDP extends Problem
             OutputStreamWriter osw = new OutputStreamWriter(fos);
             BufferedWriter bw = new BufferedWriter(osw);
             String line = "";
-            for (int v = 1; v < ins.getNumOfVertices(); v++) {
-                line = Integer.toString(v) + " " + Double.toString(demandBusStopWise[v][0]) +  " " + Double.toString(demandBusStopWise[v][1]);
+            for (int v = 0; v < ins.getNumOfVertices(); v++) {
+                line = Integer.toString(v) + " " + Integer.toString(demandBusStopWise[v][0]) +  " " + Integer.toString(demandBusStopWise[v][1]);
                 bw.write(line);
                 bw.newLine();
             }

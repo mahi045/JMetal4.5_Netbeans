@@ -61,7 +61,7 @@ public class TNDPExpThetaDEA extends Experiment
     public static void main(String[] args) throws JMException, IOException
     {
         TNDPExpThetaDEA exp = new TNDPExpThetaDEA();
-        exp.experimentName_ = "ThetaDEA_20-6-16";
+        exp.experimentName_ = "Simulator";
         int index = 0;
         for (int i = 0; i < mutationList.length; i++)
         {
@@ -82,7 +82,7 @@ public class TNDPExpThetaDEA extends Experiment
         
         exp.problemList_ = new String[] //Can be extended
         {
-            "Halifax-55"
+            "Halifax-35"
         };
 
         exp.paretoFrontFile_ = new String[]{"M1-15.pf"}; //must be set as length of problemList_   String[]{"front.pf"}
