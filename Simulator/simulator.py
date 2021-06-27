@@ -21,8 +21,9 @@ class Edge(object):
         """The washing processes. It takes a ``car`` processes and tries
         to clean it."""
         yield self.env.timeout(self.passing_time)
-        print("%s passed edge(%d, %d) at %.2f." %
-              (fleet_name, self.from_node, self.to_node, self.env.now))
+        if configuration.DISPLAY:
+            print("%s passed edge(%d, %d) at %.2f." %
+                (fleet_name, self.from_node, self.to_node, self.env.now))
 
 class Bus_Stop(object):
     """A carwash has a limited number of machines (``NUM_MACHINES``) to
@@ -79,14 +80,16 @@ def route_process(
                         if last_req != None or last_resource != None:
                             last_resource.release(last_req)
                         yield simulator.env.timeout(configuration.BUS_STOP_STANDING_TIME)  
-                        print('%s stops at bus stop (%d) at %.2f.' % (fleet_number, node1, simulator.env.now))
+                        if configuration.DISPLAY:
+                            print('%s stops at bus stop (%d) at %.2f.' % (fleet_number, node1, simulator.env.now))
                         evacuee = min(vacancies, simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index])
                         simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] -= evacuee
                         vacancies -= evacuee
                         last_req = new_req
                         last_resource = simulator.all_bus_stop[node1].machine
 
-                print('%s request (%d, %d) at %.2f.' % (fleet_number, node1, node2, simulator.env.now))
+                if configuration.DISPLAY:
+                    print('%s request (%d, %d) at %.2f.' % (fleet_number, node1, node2, simulator.env.now))
                 request_time = simulator.env.now
                 new_req = simulator.all_edge[node1,node2].machine.request()
                 yield new_req
@@ -97,12 +100,16 @@ def route_process(
                 last_req = new_req
                 last_resource = simulator.all_edge[node1,node2].machine
 
-            print('Trip %d of %s goes to shelter at %.2f.' % (trip_number, fleet_number, simulator.env.now))
+            if configuration.DISPLAY:
+                print('Trip %d of %s goes to shelter at %.2f.' % (trip_number, fleet_number, simulator.env.now))
+            time_stamp = (int) (simulator.env.now // configuration.INTERVAL)
+            
             # capacity will be zero
             vacancies = capacity
             request_time = simulator.env.now
             new_req = simulator.all_bus_stop[route[-1]].machine.request()
-            print('%s request bus stop (%d) at %.2f.' % (fleet_number, route[-1], simulator.env.now))
+            if configuration.DISPLAY:
+                print('%s request bus stop (%d) at %.2f.' % (fleet_number, route[-1], simulator.env.now))
             yield new_req
             configuration.WAITING_TIME += (simulator.env.now - request_time)
             if last_req != None or last_resource != None:
@@ -122,7 +129,8 @@ def route_process(
                 node1 = route[_]
                 node2 = route[_ - 1]
 
-                print('%s request (%d, %d) at %.2f.' % (fleet_number, node1, node2, simulator.env.now))
+                if configuration.DISPLAY:
+                    print('%s request (%d, %d) at %.2f.' % (fleet_number, node1, node2, simulator.env.now))
                 request_time = simulator.env.now
                 new_req = simulator.all_edge[node1,node2].machine.request()
                 yield new_req
@@ -136,7 +144,8 @@ def route_process(
                     start_index = _
                     break
 
-            print('Trip %d of %s goes to start node %d at %.2f.' % (trip_number, fleet_number, start_index, simulator.env.now))
+            if configuration.DISPLAY:
+                print('Trip %d of %s goes to start node %d at %.2f.' % (trip_number, fleet_number, start_index, simulator.env.now))
 
 
 class Simulator:
@@ -179,7 +188,7 @@ class Simulator:
                 
                 self.env.process(
                     route_process(
-                        self, fleet_name, 50, route_list, delay, 
+                        self, fleet_name, configuration.BUS_CAPACITY, route_list, delay, 
                         trip_count, stop_list=route_stop_list
                     )
                 )
@@ -195,15 +204,20 @@ class Simulator:
         # bus_stop.txt contains description of all bus stops
         with open(routedata_filepath, 'r') as f:
             for line in f:
-                l = [int(_) for _ in line.split()]
-                l[2] = l[2] * 1 #hypeparameter
+                l = line.split()
+                l[0] = int(l[0])
+                l[1] = int(l[1])
+                l[2] = float(l[2])
+                route_capacity = max(l[2] // configuration.BUS_LENGTH + 1, 1)
+                route_passing_time = l[2] / configuration.BUS_SPEED
+                l[3] = int(l[3])
                 assert(l[3] == 1 or l[3] == 2)
                 if l[3] == 2:
-                    self.all_edge[l[0], l[1]] = Edge(self.env, l[2], configuration.NUMBER_OF_LANE, l[0], l[1])
-                    self.all_edge[l[1], l[0]] = Edge(self.env, l[2], configuration.NUMBER_OF_LANE, l[1], l[0])
+                    self.all_edge[l[0], l[1]] = Edge(self.env, route_passing_time, route_capacity * configuration.NUMBER_OF_LANE, l[0], l[1])
+                    self.all_edge[l[1], l[0]] = Edge(self.env, route_passing_time, route_capacity *  configuration.NUMBER_OF_LANE, l[1], l[0])
                 else:
-                    self.all_edge[l[0], l[1]] = Edge(self.env, l[2], configuration.NUMBER_OF_LANE/2, l[0], l[1])
-                    self.all_edge[l[1], l[0]] = Edge(self.env, l[2], configuration.NUMBER_OF_LANE/2, l[1], l[0])
+                    self.all_edge[l[0], l[1]] = Edge(self.env, route_passing_time, route_capacity * configuration.NUMBER_OF_LANE/2, l[0], l[1])
+                    self.all_edge[l[1], l[0]] = Edge(self.env, route_passing_time, route_capacity * configuration.NUMBER_OF_LANE/2, l[1], l[0])
 
     def simulate(self):
         # Execute!
@@ -213,9 +227,9 @@ class Simulator:
 
 if __name__ == "__main__":
     # edit file path here to change data source
-    bus_stop_filepath = "bus_stop.txt"
-    bus_route_filepath = "bus_route.txt"
-    bus_fleet_filepath = "bus_fleet.txt"
+    bus_stop_filepath = "Bus_Stops1.txt"
+    bus_route_filepath = "Bus_Edge1.txt"
+    bus_fleet_filepath = "Bus_Fleet1.txt"
 
     simulator: Simulator = Simulator()
     # provide datafile and prepare internal datastructure and environment
