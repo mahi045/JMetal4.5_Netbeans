@@ -216,12 +216,12 @@ public class TNDP extends Problem
             }
             r_index_new = r_index;
             // check whether the route need more bus or not
-            while(rs.getRoute(r_index_new).fleet * rs.getRoute(r_index_new).getCapacity() >= routeMLS[r_index_new]) {
-                r_index_new++;
-                if (r_index_new >= rs.size()) {
-                    r_index_new = 0;
-                }
-            }
+//            while(rs.getRoute(r_index_new).fleet * rs.getRoute(r_index_new).getCapacity() >= routeMLS[r_index_new]) {
+//                r_index_new++;
+//                if (r_index_new >= rs.size()) {
+//                    r_index_new = 0;
+//                }
+//            }
             rs.getRoute(r_index_new).fleet++;
         }
         // this code is for testing
@@ -259,11 +259,11 @@ public class TNDP extends Problem
                 else 
                 {
                     int from = rs.getRoute(k).nodeList.get(kk - 1);
-                    if (time[to][from] == Double.MAX_VALUE) {
+                    if (time[to][from] == Double.MAX_VALUE && time[from][to] == Double.MAX_VALUE) {
                         one_way_time += 100.0;
                     }
                     else {
-                        one_way_time += time[to][from];
+                        one_way_time += Math.min(time[to][from], time[from][to]);
                     }
                 }
             }
@@ -275,11 +275,11 @@ public class TNDP extends Problem
                 else 
                 {
                     int from = rs.getRoute(k).nodeList.get(kk - 1);
-                    if (time[to][from] == Double.MAX_VALUE) {
+                    if (time[to][from] == Double.MAX_VALUE && time[from][to] == Double.MAX_VALUE) {
                         first_stoping_time += 100.0;
                     }
                     else {
-                        first_stoping_time += time[to][from];
+                        first_stoping_time += Math.min(time[to][from], time[from][to]);
                     }
                 }
                 if (sharedStops.contains(rs.getRoute(k).nodeList.get(kk))) {
@@ -521,11 +521,13 @@ public class TNDP extends Problem
                 }
                 for (si++; si <= ei; si++)
                 {
-                    if (time[r.nodeList.get(si)][r.nodeList.get(si - 1)] == Double.MAX_VALUE) {
+                    if (time[r.nodeList.get(si)][r.nodeList.get(si - 1)] == Double.MAX_VALUE && 
+                        time[r.nodeList.get(si - 1)][r.nodeList.get(si)] == Double.MAX_VALUE) {
                         totalTime += 100.0;
                         continue;
                     }
-                    totalTime += time[r.nodeList.get(si)][r.nodeList.get(si - 1)];
+                    totalTime += Math.min(time[r.nodeList.get(si)][r.nodeList.get(si - 1)], 
+                                time[r.nodeList.get(si - 1)][r.nodeList.get(si)]) ;
                 }
             }
             p.setTotalInVehicleTime(totalTime);

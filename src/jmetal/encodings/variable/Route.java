@@ -125,11 +125,11 @@ public class Route implements Comparable
         roundTripTime = 0;
         for (int i = 1; i < nodeList.size(); i++)
         {
-            if (time[nodeList.get(i)][nodeList.get(i - 1)] == Double.MAX_VALUE) {
+            if (time[nodeList.get(i)][nodeList.get(i - 1)] == Double.MAX_VALUE && time[nodeList.get(i - 1)][nodeList.get(i)] == Double.MAX_VALUE) {
                 roundTripTime += 100.0;
             }
             else {
-                roundTripTime += time[nodeList.get(i)][nodeList.get(i - 1)];
+                roundTripTime += Math.min(time[nodeList.get(i)][nodeList.get(i - 1)], time[nodeList.get(i - 1)][nodeList.get(i)]);
             }
             edgeUsage[nodeList.get(i)][nodeList.get(i - 1)] = ++edgeUsage[nodeList.get(i - 1)][nodeList.get(i)];
             edgeFreqSum[nodeList.get(i)][nodeList.get(i - 1)] = (edgeFreqSum[nodeList.get(i - 1)][nodeList.get(i)] += this.frequency);
