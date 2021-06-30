@@ -1,4 +1,4 @@
-import simpy
+import simpy, argparse
 import configuration
 
 class Edge(object):
@@ -57,7 +57,8 @@ def route_process(
         """
         yield simulator.env.timeout(interval)
         size = len(route)
-        print('%s starts at %.2f.' % (fleet_number, simulator.env.now))
+        if configuration.FLEET_DISPLAY:
+            print('%s starts at %.2f.' % (fleet_number, simulator.env.now))
         vacancies = capacity
         des_shelter_index = configuration.get_shelter_index(route[-1])
         start_index = 1
@@ -66,7 +67,7 @@ def route_process(
         new_req = None
         trip_number = 1
         while True:
-            # start_index = 1
+            start_index = max(1, start_index)
             for _ in range(start_index, size):
                 node1 = route[_ - 1]
                 node2 = route[_]
@@ -103,7 +104,7 @@ def route_process(
 
             if configuration.DISPLAY:
                 print('Trip %d of %s goes to shelter at %.2f.' % (trip_number, fleet_number, simulator.env.now))
-            time_stamp = (int) (simulator.env.now // configuration.STAT_INTERVAL) * 1000
+            time_stamp = (int) (simulator.env.now // configuration.STAT_INTERVAL)
             if time_stamp not in configuration.STAT_EVACUEE:
                 configuration.STAT_EVACUEE[time_stamp] = (capacity - vacancies)
             else:
@@ -134,7 +135,7 @@ def route_process(
             #     # no backward journey required
             #     break
 
-            time_stamp = (int) (simulator.env.now // configuration.STAT_INTERVAL) * 1000
+            time_stamp = (int) (simulator.env.now // configuration.STAT_INTERVAL)
             if time_stamp not in configuration.STAT_FLEET:
                 configuration.STAT_FLEET[time_stamp] = 1
             else:
@@ -152,7 +153,12 @@ def route_process(
                 # no trip needed
                 if last_req != None or last_resource != None:
                     last_resource.release(last_req)
-                print('%s done all the trips at %.2f.' % (fleet_number, simulator.env.now))
+
+                configuration.FLEET_DONE += 1
+                if configuration.FLEET_DISPLAY:
+                    print('%s done all the trips at %.2f.' % (fleet_number, simulator.env.now))
+                if configuration.FLEET_DONE == configuration.NUMBER_OF_FLEET:
+                    print('Total Evacuation Time: {0}'.format(simulator.env.now))
                 break
 
             for _ in range(size - 1, start_index, -1):
@@ -259,15 +265,17 @@ class Simulator:
         self.env.run(until=configuration.SIM_TIME)
         print("Waiting time: {0}".format(configuration.WAITING_TIME))
         # Here is all the statictics 
-        print(configuration.STAT_FLEET)
-        print(configuration.STAT_EVACUEE)
+        # print(configuration.STAT_FLEET)
+        # print(configuration.STAT_EVACUEE)
         a = 0
         for _ in configuration.STAT_EVACUEE:
+            print('At {0}th hour #evacuees: {1}'.format(_, configuration.STAT_EVACUEE[_]))
             a += configuration.STAT_EVACUEE[_]
 
         print('Number of evacuaees: {0}'.format(a))
         a = 0
         for _ in configuration.STAT_FLEET:
+            print('At {0}th hour #trips: {1}'.format(_, configuration.STAT_FLEET[_]))
             a += configuration.STAT_FLEET[_]
 
         print('Number of trips: {0}'.format(a))
@@ -276,9 +284,12 @@ class Simulator:
 
 if __name__ == "__main__":
     # edit file path here to change data source
-    bus_stop_filepath = "Bus_Stops1.txt"
-    bus_route_filepath = "Bus_Edge1.txt"
-    bus_fleet_filepath = "Bus_Fleet1.txt"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i','--i', help='Description', required=True)
+    args = parser.parse_args()
+    bus_stop_filepath = "examples/Bus_Stops{0}.txt".format(args.i)
+    bus_route_filepath = "examples/Bus_Edge{0}.txt".format(args.i)
+    bus_fleet_filepath = "examples/Bus_Fleet{0}.txt".format(args.i)
 
     simulator: Simulator = Simulator()
     # provide datafile and prepare internal datastructure and environment

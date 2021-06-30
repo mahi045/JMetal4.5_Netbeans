@@ -1,0 +1,26 @@
+Total Evacuation Time: 37400.18945972049
+Waiting time: 0.14114115493066492
+At 0th hour #evacuees: 10343
+At 1th hour #evacuees: 11854
+At 2th hour #evacuees: 2761
+At 3th hour #evacuees: 5968
+At 4th hour #evacuees: 2406
+At 5th hour #evacuees: 3522
+At 6th hour #evacuees: 2585
+At 7th hour #evacuees: 1266
+At 8th hour #evacuees: 1155
+At 9th hour #evacuees: 2847
+At 10th hour #evacuees: 0
+Number of evacuaees: 44707
+At 0th hour #trips: 207
+At 1th hour #trips: 467
+At 2th hour #trips: 376
+At 3th hour #trips: 305
+At 4th hour #trips: 242
+At 5th hour #trips: 175
+At 6th hour #trips: 152
+At 7th hour #trips: 102
+At 8th hour #trips: 85
+At 9th hour #trips: 74
+At 10th hour #trips: 21
+Number of trips: 2206
