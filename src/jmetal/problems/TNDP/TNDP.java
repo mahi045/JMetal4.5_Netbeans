@@ -135,6 +135,7 @@ public class TNDP extends Problem
             demandBusStopWise[k][1] = 0;
         }
         setSharedStops(rs);
+        int unreachable_zones = 0;
         for (Map.Entry<Integer, ArrayList<Integer>> entry : zoneStopMapping.entrySet())
         {
             for (int j = 0; j < shelters.length; j++)
@@ -146,6 +147,7 @@ public class TNDP extends Problem
 //                classifyPaths(paths, pathClass/*, pathGroup*/);
                  if (paths.isEmpty()) //unsatisfied
                  {
+                     unreachable_zones++;
                      paths = null;
                      pathClass = null;
                      rs.d[1] += demand.get(entry.getKey())[j];
@@ -162,6 +164,9 @@ public class TNDP extends Problem
 
             }
         }
+        // if (unreachable_zones > 0) {
+        //      System.out.println("Total unreachable zones: " + Integer.toString(unreachable_zones));
+        // }
         // do
         // {
             for (int k = 0; k < rs.size(); k++)
@@ -1081,14 +1086,27 @@ public class TNDP extends Problem
         
         return paths[PseudoRandom.roulette_wheel(fit, 0)];
     }
+    public int[] determineShortestRoute(int source, int sink) { 
+        int path[] = null;
+        ArrayList<Integer> p = new ArrayList<Integer>();
+        if (g.containsAPath(source, sink))
+        {
+            // System.out.println("Has path " + Integer.toString(source) + " and " + Integer.toString(sink));
+            p = graphHelper.dijkstra(source, sink);
+            path = p.stream().mapToInt(j -> j).toArray();
+        }
+        return path;
+    }
     public boolean nodeCanBeDeleted(RouteSet rs, int node) 
     {
-        if (isShelter(node)) {
+        // if shelter then no
+        if (isShelterOrImmediateNode(node)) {
             return false;
         }
         int zone = zone_ref[node];
         ArrayList<Integer> temp = new ArrayList<Integer>(zoneStopMapping.get(zone));
         temp.remove(new Integer(node));
+        // if the zone has one single node
         if (temp.isEmpty())
             return false;
         HashMap<Integer, Boolean> isReached = new HashMap<Integer, Boolean>();
@@ -1106,6 +1124,7 @@ public class TNDP extends Problem
                 }
             }
         }
+        // the routeset has other node(s) to the shelter
         for (Integer s: isReached.keySet()) {
             if (!isReached.get(s)) {
                 return false;                    
