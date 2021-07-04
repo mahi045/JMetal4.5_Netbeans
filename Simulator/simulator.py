@@ -1,5 +1,6 @@
 import simpy, argparse
 import configuration
+import os
 
 class Edge(object):
     """A carwash has a limited number of machines (``NUM_MACHINES``) to
@@ -47,7 +48,7 @@ class Simulator:
 
 def route_process(
     simulator: Simulator, fleet_number: str, capacity:int, route: list, 
-    interval: float, trip: int, stop_list: list=None):
+    interval: float, trip: int):
         """The car process (each car has a ``name``) arrives at the carwash
         (``cw``) and requests a cleaning machine.
 
@@ -72,23 +73,21 @@ def route_process(
                 node1 = route[_ - 1]
                 node2 = route[_]
 
-                # first check if node1 in stop list
-                if simulator.stop_list is None or node1 in simulator.stop_list:
-                    if simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] > 0 and vacancies > 0:
-                        request_time = simulator.env.now
-                        new_req = simulator.all_bus_stop[node1].machine.request()
-                        yield new_req
-                        configuration.WAITING_TIME += (simulator.env.now - request_time)
-                        if last_req != None or last_resource != None:
-                            last_resource.release(last_req)
-                        yield simulator.env.timeout(configuration.BUS_STOP_STANDING_TIME)  
-                        if configuration.DISPLAY:
-                            print('%s stops at bus stop (%d) at %.2f.' % (fleet_number, node1, simulator.env.now))
-                        evacuee = min(vacancies, simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index])
-                        simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] -= evacuee
-                        vacancies -= evacuee
-                        last_req = new_req
-                        last_resource = simulator.all_bus_stop[node1].machine
+                if simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] > 0 and vacancies > 0:
+                    request_time = simulator.env.now
+                    new_req = simulator.all_bus_stop[node1].machine.request()
+                    yield new_req
+                    configuration.WAITING_TIME += (simulator.env.now - request_time)
+                    if last_req != None or last_resource != None:
+                        last_resource.release(last_req)
+                    yield simulator.env.timeout(configuration.BUS_STOP_STANDING_TIME)
+                    if configuration.DISPLAY:
+                        print('%s stops at bus stop (%d) at %.2f.' % (fleet_number, node1, simulator.env.now))
+                    evacuee = min(vacancies, simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index])
+                    simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] -= evacuee
+                    vacancies -= evacuee
+                    last_req = new_req
+                    last_resource = simulator.all_bus_stop[node1].machine
 
                 if configuration.DISPLAY:
                     print('%s request (%d, %d) at %.2f.' % (fleet_number, node1, node2, simulator.env.now))
@@ -184,6 +183,113 @@ def route_process(
                 print('Trip %d of %s goes to start node %d at %.2f.' % (trip_number, fleet_number, start_index, simulator.env.now))
 
 
+def selective_stop_route_process(
+    simulator: Simulator, fleet_number: str, capacity:int, route: list,
+    interval: float, trip: int, stop_list: list):
+        """The car process (each car has a ``name``) arrives at the carwash
+        (``cw``) and requests a cleaning machine.
+
+        It then starts the washing process, waits for it to finish and
+        leaves to never come back ...
+
+        """
+        yield simulator.env.timeout(interval)
+        size = len(route)
+        if configuration.FLEET_DISPLAY:
+            print('%s starts at %.2f.' % (fleet_number, simulator.env.now))
+        vacancies = capacity
+        if stop_list is None:
+            des_shelter_index = configuration.get_shelter_index(route[-1])
+        else:
+            des_shelter_index = configuration.get_shelter_index(stop_list[-1])
+        start_index = 1
+        last_req = None
+        last_resource = None
+        new_req = None
+        trip_number = 1
+        forward_direction = True
+
+        while True:
+            # start_index = 1
+            for node_idx in range(1, size):
+                node1 = route[node_idx - 1]
+                node2 = route[node_idx]
+
+                if node1 in stop_list and forward_direction:
+                    if simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] > 0 and vacancies > 0:
+                        request_time = simulator.env.now
+                        new_req = simulator.all_bus_stop[node1].machine.request()
+                        yield new_req
+                        configuration.WAITING_TIME += (simulator.env.now - request_time)
+                        if last_req != None or last_resource != None:
+                            last_resource.release(last_req)
+                        yield simulator.env.timeout(configuration.BUS_STOP_STANDING_TIME)
+                        if configuration.DISPLAY:
+                            print('%s stops at bus stop (%d) at %.2f.' % (fleet_number, node1, simulator.env.now))
+                        evacuee = min(vacancies, simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index])
+                        simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] -= evacuee
+                        vacancies -= evacuee
+                        last_req = new_req
+                        last_resource = simulator.all_bus_stop[node1].machine
+
+                    if node1 == stop_list[-1]:
+                        if configuration.DISPLAY:
+                            print('Trip %d of %s goes to shelter at %.2f.' % (trip_number, fleet_number, simulator.env.now))
+                        time_stamp = (int) (simulator.env.now // configuration.STAT_INTERVAL)
+                        if time_stamp not in configuration.STAT_EVACUEE:
+                            configuration.STAT_EVACUEE[time_stamp] = (capacity - vacancies)
+                        else:
+                            configuration.STAT_EVACUEE[time_stamp] += (capacity - vacancies)
+                        # vacancy will be capacity
+                        vacancies = capacity
+                        request_time = simulator.env.now
+                        forward_direction = False
+                        # yield give times to get off the bus
+                        yield simulator.env.timeout(configuration.SHELTER_EVACUATION_TIME)
+
+                if configuration.DISPLAY:
+                    print('%s request (%d, %d) at %.2f.' % (fleet_number, node1, node2, simulator.env.now))
+                request_time = simulator.env.now
+                new_req = simulator.all_edge[node1,node2].machine.request()
+                yield new_req
+                configuration.WAITING_TIME += (simulator.env.now - request_time)
+                if last_req != None or last_resource != None:
+                    last_resource.release(last_req)
+                yield simulator.env.process(simulator.all_edge[node1,node2].pass_the_edge(fleet_number))
+                last_req = new_req
+                last_resource = simulator.all_edge[node1,node2].machine
+
+            time_stamp = (int) (simulator.env.now // configuration.STAT_INTERVAL)
+            if time_stamp not in configuration.STAT_FLEET:
+                configuration.STAT_FLEET[time_stamp] = 1
+            else:
+                configuration.STAT_FLEET[time_stamp] += 1
+
+            if configuration.DISPLAY:
+                print('Trip %d of %s goes to start node %d at %.2f.' % (trip_number, fleet_number, start_index, simulator.env.now))
+
+            forward_direction = True
+
+            if trip_number == trip:
+                if last_req != None or last_resource != None:
+                    last_resource.release(last_req)
+                time_stamp = (int) (simulator.env.now // configuration.STAT_INTERVAL)
+                if time_stamp not in configuration.STAT_FLEET:
+                    configuration.STAT_FLEET[time_stamp] = 1
+                else:
+                    configuration.STAT_FLEET[time_stamp] += 1
+                if configuration.DISPLAY:
+                    print('%s done all the trips at %.2f.' % (fleet_number, simulator.env.now))
+                # no backward journey required
+                configuration.FLEET_DONE += 1
+                if configuration.FLEET_DISPLAY:
+                    print('%s done all the trips at %.2f.' % (fleet_number, simulator.env.now))
+                if configuration.FLEET_DONE == configuration.NUMBER_OF_FLEET:
+                    print('Total Evacuation Time: {0}'.format(simulator.env.now))
+                break
+            else:
+                trip_number += 1
+
 class Simulator:
     def __init__(self):
         # type hint given
@@ -222,12 +328,22 @@ class Simulator:
                 else:
                     route_stop_list = self.stop_list[route_no]
                 
-                self.env.process(
-                    route_process(
-                        self, fleet_name, configuration.BUS_CAPACITY, route_list, delay, 
-                        trip_count, stop_list=route_stop_list
+                # depending on if per route stop list is provided or not
+                # we have followed different strategy of evacuation
+                if route_stop_list is None:
+                    self.env.process(
+                        route_process(
+                            self, fleet_name, configuration.BUS_CAPACITY, route_list, delay,
+                            trip_count
+                        )
                     )
-                )
+                else:
+                    self.env.process(
+                        selective_stop_route_process(
+                            self, fleet_name, configuration.BUS_CAPACITY, route_list, delay,
+                            trip_count, stop_list=route_stop_list
+                        )
+                    )
                 fleet_name = f.readline().strip()
                 route_no += 1
         to_shelter1 = 0
@@ -290,13 +406,18 @@ if __name__ == "__main__":
     bus_stop_filepath = "examples/Bus_Stops{0}.txt".format(args.i)
     bus_route_filepath = "examples/Bus_Edge{0}.txt".format(args.i)
     bus_fleet_filepath = "examples/Bus_Fleet{0}.txt".format(args.i)
+    bus_routestop_filepath = None
+
+    if os.path.exists("examples/Bus_RouteStop{0}.txt".format(args.i)):
+        bus_routestop_filepath = "examples/Bus_RouteStop{0}.txt".format(args.i)
 
     simulator: Simulator = Simulator()
     # provide datafile and prepare internal datastructure and environment
     simulator.parse_data_prep_env(
         routedata_filepath = bus_route_filepath, 
         fleetdata_filepath = bus_fleet_filepath, 
-        stopdata_filepath = bus_stop_filepath
+        stopdata_filepath = bus_stop_filepath,
+        perroutestopdata_filepath = bus_routestop_filepath
     )
     # simulate
     simulator.simulate()
