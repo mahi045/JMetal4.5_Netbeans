@@ -1,4 +1,4 @@
-import simpy, argparse
+import simpy, argparse, random
 import configuration
 import os
 
@@ -63,6 +63,7 @@ def route_process(
         vacancies = capacity
         des_shelter_index = configuration.get_shelter_index(route[-1])
         start_index = 1
+        fleet_identifier = fleet_number[fleet_number.find("on")+3:]
         last_req = None
         last_resource = None
         new_req = None
@@ -141,24 +142,58 @@ def route_process(
                 configuration.STAT_FLEET[time_stamp] += 1
 
             start_index = -1
-            for _ in range(0, size):
-                node1 = route[_]
+            if fleet_identifier not in configuration.EVACUATION_FINISHED_ROUTE:
+                for _ in range(0, size):
+                    node1 = route[_]
 
-                if simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] > 0:
-                    # node1 has some evacuees
-                    start_index = _
+                    if simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] > 0:
+                        # node1 has some evacuees
+                        start_index = _
+                        break
 
             if start_index == -1:
                 # no trip needed
-                if last_req != None or last_resource != None:
-                    last_resource.release(last_req)
+                
 
-                configuration.FLEET_DONE += 1
-                if configuration.FLEET_DISPLAY:
-                    print('%s done all the trips at %.2f.' % (fleet_number, simulator.env.now))
-                if configuration.FLEET_DONE == configuration.NUMBER_OF_FLEET:
-                    print('Total Evacuation Time: {0}'.format(simulator.env.now))
-                break
+                time_stamp = (int) (simulator.env.now // configuration.STAT_INTERVAL)
+                if fleet_identifier not in configuration.STAT_ROUTE:
+                    configuration.STAT_ROUTE[fleet_identifier] = time_stamp
+                configuration.EVACUATION_FINISHED_ROUTE[fleet_identifier] = True
+                # can we reroute the fleet on another route
+                isRerouted = False
+                order = list(configuration.ALL_ROUTE.keys())  
+                random.shuffle(order)  # random order of routes
+                for _ in order:
+                    if _ not in configuration.EVACUATION_FINISHED_ROUTE:
+                        assert configuration.ALL_ROUTE[_][-1] == configuration.SHELTER_INDEX_1 or configuration.ALL_ROUTE[_][-1] == configuration.SHELTER_INDEX_2
+                        assert route[-1] == configuration.SHELTER_INDEX_1 or route[-1] == configuration.SHELTER_INDEX_2
+                        if configuration.ALL_ROUTE[_][-1] == route[-1]:
+                            route = configuration.ALL_ROUTE[_]
+                            fleet_identifier = _
+                            size = len(route)
+                            start_index = -1
+                            for _ in range(0, size):
+                                node1 = route[_]
+                                if simulator.all_bus_stop[node1].number_of_evacuee[des_shelter_index] > 0:
+                                # node1 has some evacuees
+                                    start_index = _
+                                    break
+                            if start_index != -1:
+                                # yes, we can reroute the fleet to route
+                                isRerouted = True
+                    if isRerouted:
+                        break
+                        
+                
+                if not isRerouted:
+                    if last_req != None or last_resource != None:
+                        last_resource.release(last_req)
+                    configuration.FLEET_DONE += 1
+                    if configuration.FLEET_DISPLAY:
+                        print('%s done all the trips at %.2f.' % (fleet_number, simulator.env.now))
+                    if configuration.FLEET_DONE == configuration.NUMBER_OF_FLEET:
+                        print('Total Evacuation Time: {0}'.format(simulator.env.now / 3600))
+                    break
 
             for _ in range(size - 1, start_index, -1):
                 node1 = route[_]
@@ -321,7 +356,13 @@ class Simulator:
                 route_list = [int(_) for _ in route_des.split()]
                 delay =  float(f.readline())
                 trip_count = int(f.readline())
-                
+                fleet_route = fleet_name[fleet_name.find("on")+3:]
+                if fleet_route not in configuration.ALL_ROUTE:
+                    configuration.ALL_ROUTE[fleet_route] = route_list
+                if configuration.get_shelter_index(route_list[-1]) not in configuration.ROUTE_TO_SHELTER:
+                    configuration.ROUTE_TO_SHELTER[configuration.get_shelter_index(route_list[-1])] = 1
+                else:
+                    configuration.ROUTE_TO_SHELTER[configuration.get_shelter_index(route_list[-1])] += 1
                 # get route specific stop list
                 if self.stop_list is None:
                     route_stop_list = None
@@ -346,6 +387,9 @@ class Simulator:
                     )
                 fleet_name = f.readline().strip()
                 route_no += 1
+
+        print("There are {0} fleets to first shelter".format(configuration.ROUTE_TO_SHELTER[0]))
+        print("There are {0} fleets to second shelter".format(configuration.ROUTE_TO_SHELTER[1]))
         to_shelter1 = 0
         to_shelter2 = 0
         # bus_stop.txt contains description of all bus stops
@@ -395,6 +439,13 @@ class Simulator:
             a += configuration.STAT_FLEET[_]
 
         print('Number of trips: {0}'.format(a))
+
+        a = 0
+        for _ in configuration.STAT_ROUTE:
+            print('In {0} th evacuation done at hour: {1}'.format(_, configuration.STAT_ROUTE[_]))
+            a += 1
+
+        print('Number of routes: {0}'.format(a))
 
 
 
