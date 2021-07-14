@@ -123,6 +123,7 @@ public class TNDP extends Problem
         // HashMap[][] allPathGroup = new HashMap[Vertices][Vertices];
         int[][] edgeUsage = new int[Vertices][Vertices];
         double[][] edgeFreqSum = new double[Vertices][Vertices];
+        int [] fleetFitness = new int [rs.size()];
 
         double totalRL = 0;
         for (int k = 0; k < rs.size(); k++)
@@ -164,9 +165,9 @@ public class TNDP extends Problem
 
             }
         }
-        // if (unreachable_zones > 0) {
-        //      System.out.println("Total unreachable zones: " + Integer.toString(unreachable_zones));
-        // }
+        //  if (unreachable_zones > 0) {
+        //       System.out.println("Total unreachable zones: " + Integer.toString(unreachable_zones));
+        //  }
         // do
         // {
             for (int k = 0; k < rs.size(); k++)
@@ -184,7 +185,8 @@ public class TNDP extends Problem
                 }
             }
         // } while (!findMLS(rs, routeDemand));
-        int totalMLS = 0;
+        int totalFitness = 0;
+        
         for (int i = 0; i < rs.size(); i++)
         {
             double MLSDemand = routeDemand[i][1];
@@ -200,22 +202,26 @@ public class TNDP extends Problem
                     
             }
             assert routeDemand[i][routeDemand[i].length - 1] == MLSDemand;
+            double RL = rs.getRoute(i).calculateRouteLength_RoundTrip_edgeOverlap(time, edgeUsage, edgeFreqSum);
             routeMLS[i] = (int) Math.ceil(MLSDemand);
-            totalMLS += (int) Math.ceil(MLSDemand);
+            fleetFitness[i] = (int) Math.ceil(MLSDemand * RL);
+            totalFitness += fleetFitness[i];
+            assert fleetFitness[i] > 0;
+
             rs.getRoute(i).fleet = 1;
         }
         ArrayList<Integer> random_number_list = new ArrayList<Integer>();
         for (int i = 0; i < fleetSize - rs.size(); i++) {
-            random_number_list.add(PseudoRandom.nextInt(totalMLS));
+            random_number_list.add(PseudoRandom.nextInt(totalFitness));
         }
         Collections.sort(random_number_list);
         int r_index = 0;
         int r_index_new = 0;
-        int cum_demand = routeMLS[r_index];
+        int cum_demand = fleetFitness[r_index];
         for (Integer e: random_number_list) {
             if (cum_demand < e) {
                 while(cum_demand < e) {
-                    cum_demand += routeMLS[++r_index];
+                    cum_demand += fleetFitness[++r_index];
                 }
                     
             }

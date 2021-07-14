@@ -17,7 +17,7 @@ public class Halifax  extends Instance{
         timeFile = "HalifaxTime.txt";
         RouteFile = "MandlPRoute.txt";
         EdgeListFile = "HalifaxEdgelist.txt";
-        minNode = 10;
+        minNode = 15;
         maxNode = 40;
         name = "Halifax";
     }
